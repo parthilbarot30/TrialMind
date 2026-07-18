@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-const [openingStatement, setOpeningStatement] = useState("");
-const [loadingOpening, setLoadingOpening] = useState(false);
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const CASE_TYPES = [
@@ -523,6 +521,8 @@ function RoundBlock({ round, userResponse, prevScore }) {
 }
 
 export default function App() {
+  const [openingStatement, setOpeningStatement] = useState("");
+  const [loadingOpening, setLoadingOpening] = useState(false);
   const [caseText, setCaseText] = useState("");
   const [caseType, setCaseType] = useState("landlord");
   const [userResponse, setUserResponse] = useState("");
