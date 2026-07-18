@@ -275,3 +275,55 @@ The litigant now responds: {data.user_response}"""
         "score": score_data,
         "history": updated_history
     }
+class OpeningInput(BaseModel):
+    case_description: str
+    case_type: str = "small_claims"
+    rounds_summary: str
+    evidence_secured: list = []
+
+@app.post("/opening-statement")
+def generate_opening_statement(data: OpeningInput):
+    evidence_list = "\n".join(f"- {e}" for e in data.evidence_secured) or "None specified"
+    
+    prompt = f"""You are a skilled legal advocate writing an opening statement 
+for a pro-se litigant in a {data.case_type} case.
+
+Case description:
+{data.case_description}
+
+Evidence secured:
+{evidence_list}
+
+Analysis summary:
+{data.rounds_summary}
+
+Write a powerful, structured opening statement with exactly 3 paragraphs:
+
+Paragraph 1 — INTRODUCTION: Who the litigant is, what they are seeking, 
+and the core injustice in one compelling statement.
+
+Paragraph 2 — THE FACTS: A clear chronological narrative of what happened, 
+citing specific evidence they have secured. Be precise with dates and details.
+
+Paragraph 3 — THE ASK: What the court should rule, why justice requires it, 
+and a strong closing line the judge will remember.
+
+Write in first person ("Your Honor, I am here today because...").
+Use plain, confident language — no legal jargon.
+Make it speakable — this will be read aloud in court.
+Length: 250-320 words total.
+Output only the opening statement. No labels, no preamble."""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are an expert legal advocate who writes powerful, plain-language opening statements for pro-se litigants."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=600
+    )
+    
+    return {
+        "opening_statement": response.choices[0].message.content
+    }
