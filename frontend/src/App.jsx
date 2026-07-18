@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { supabase } from "./supabase";
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const CASE_TYPES = [
@@ -520,7 +521,13 @@ function RoundBlock({ round, userResponse, prevScore }) {
   );
 }
 
-export default function App() {
+export default function App({
+  user,
+  activeCase,
+  onBackToDashboard,
+  onSignOut,
+}) {
+  const [currentCaseId, setCurrentCaseId] = useState(activeCase?.id || null);
   const [openingStatement, setOpeningStatement] = useState("");
   const [loadingOpening, setLoadingOpening] = useState(false);
   const [caseText, setCaseText] = useState("");
@@ -538,6 +545,66 @@ export default function App() {
     if (rounds.length > 0)
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [rounds]);
+  useEffect(() => {
+    if (activeCase) loadCase(activeCase);
+  }, [activeCase]);
+
+  const loadCase = async (caseData) => {
+    setCaseText(caseData.case_description);
+    setCaseType(caseData.case_type);
+    setCurrentCaseId(caseData.id);
+    setStarted(true);
+
+    const [
+      { data: roundsData },
+      { data: checklistData },
+      { data: openingData },
+    ] = await Promise.all([
+      supabase
+        .from("rounds")
+        .select("*")
+        .eq("case_id", caseData.id)
+        .order("round_number"),
+      supabase.from("checklist_items").select("*").eq("case_id", caseData.id),
+      supabase
+        .from("opening_statements")
+        .select("*")
+        .eq("case_id", caseData.id)
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+    if (roundsData?.length > 0) {
+      const loadedRounds = roundsData.map((r) => ({
+        label: r.label,
+        advocate: r.advocate,
+        opposition: r.opposition,
+        judge: r.judge,
+        score: {
+          score: r.score,
+          verdict: r.verdict,
+          critical_gap: r.critical_gap,
+        },
+      }));
+      const loadedResponses = roundsData
+        .slice(1)
+        .map((r) => r.user_response || "");
+      setRounds(loadedRounds);
+      setUserResponses(loadedResponses);
+      setHistory(
+        roundsData
+          .map((r) => [
+            { role: "advocate", content: r.advocate },
+            { role: "opposition", content: r.opposition },
+            { role: "judge", content: r.judge },
+          ])
+          .flat(),
+      );
+    }
+
+    if (checklistData) setChecklist(checklistData);
+    if (openingData?.[0]) setOpeningStatement(openingData[0].content);
+  };
 
   const analyzeCase = async () => {
     if (!caseText.trim()) return;
@@ -548,19 +615,63 @@ export default function App() {
         case_type: caseType,
         conversation_history: [],
       });
-      setRounds([
-        {
-          label: "Initial Analysis",
-          advocate: res.data.advocate,
-          opposition: res.data.opposition,
-          judge: res.data.judge,
-          score: res.data.score,
-        },
-      ]);
+
+      const firstRound = {
+        label: "Initial Analysis",
+        advocate: res.data.advocate,
+        opposition: res.data.opposition,
+        judge: res.data.judge,
+        score: res.data.score,
+      };
+
+      setRounds([firstRound]);
       setChecklist(res.data.checklist || []);
       setUserResponses([]);
       setHistory(res.data.history);
       setStarted(true);
+
+      // Save to Supabase if logged in
+      if (user) {
+        const title =
+          caseText.slice(0, 60) + (caseText.length > 60 ? "..." : "");
+
+        const { data: caseData } = await supabase
+          .from("cases")
+          .insert({
+            user_id: user.id,
+            title,
+            case_description: caseText,
+            case_type: caseType,
+          })
+          .select()
+          .single();
+
+        if (caseData) {
+          setCurrentCaseId(caseData.id);
+
+          await Promise.all([
+            supabase.from("rounds").insert({
+              case_id: caseData.id,
+              round_number: 1,
+              label: firstRound.label,
+              advocate: firstRound.advocate,
+              opposition: firstRound.opposition,
+              judge: firstRound.judge,
+              score: firstRound.score.score,
+              verdict: firstRound.score.verdict,
+              critical_gap: firstRound.score.critical_gap,
+            }),
+            ...(res.data.checklist || []).map((item) =>
+              supabase.from("checklist_items").insert({
+                case_id: caseData.id,
+                item: item.item,
+                priority: item.priority,
+                have: false,
+              }),
+            ),
+          ]);
+        }
+      }
     } catch (e) {
       alert("Backend error — is the server running?");
     }
@@ -577,31 +688,60 @@ export default function App() {
         user_response: userResponse,
         conversation_history: history,
       });
-      setRounds((prev) => [
-        ...prev,
-        {
-          label: `Round ${prev.length + 1} — After Your Response`,
-          advocate: res.data.advocate,
-          opposition: res.data.opposition,
-          judge: res.data.judge,
-          score: res.data.score,
-        },
-      ]);
+
+      const newRound = {
+        label: `Round ${rounds.length + 1} — After Your Response`,
+        advocate: res.data.advocate,
+        opposition: res.data.opposition,
+        judge: res.data.judge,
+        score: res.data.score,
+      };
+
+      setRounds((prev) => [...prev, newRound]);
       setUserResponses((prev) => [...prev, userResponse]);
       setHistory(res.data.history);
       setUserResponse("");
+
+      // Save to Supabase
+      if (user && currentCaseId) {
+        await Promise.all([
+          supabase.from("rounds").insert({
+            case_id: currentCaseId,
+            round_number: rounds.length + 1,
+            label: newRound.label,
+            advocate: newRound.advocate,
+            opposition: newRound.opposition,
+            judge: newRound.judge,
+            score: newRound.score.score,
+            verdict: newRound.score.verdict,
+            critical_gap: newRound.score.critical_gap,
+            user_response: userResponse,
+          }),
+          supabase
+            .from("cases")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", currentCaseId),
+        ]);
+      }
     } catch (e) {
       alert("Backend error — is the server running?");
     }
     setLoading(false);
   };
 
-  const toggleChecklist = (i) =>
+  const toggleChecklist = async (i) => {
+    const item = checklist[i];
+    const newHave = !item.have;
     setChecklist((prev) =>
-      prev.map((item, idx) =>
-        idx === i ? { ...item, have: !item.have } : item,
-      ),
+      prev.map((it, idx) => (idx === i ? { ...it, have: newHave } : it)),
     );
+    if (user && item.id) {
+      await supabase
+        .from("checklist_items")
+        .update({ have: newHave })
+        .eq("id", item.id);
+    }
+  };
 
   const reset = () => {
     setCaseText("");
@@ -611,6 +751,8 @@ export default function App() {
     setChecklist([]);
     setHistory([]);
     setStarted(false);
+    setCurrentCaseId(null);
+    setOpeningStatement("");
   };
 
   const selectedType = CASE_TYPES.find((c) => c.id === caseType);
@@ -868,15 +1010,13 @@ export default function App() {
       const securedEvidence = checklist
         .filter((i) => i.have)
         .map((i) => i.item);
-
       const roundsSummary = rounds
         .map(
           (r, i) => `
-Round ${i + 1}:
-- Score: ${r.score.score}/100
-- Strongest point: ${r.score.verdict}
-- Critical gap: ${r.score.critical_gap}
-- Advocate noted: ${r.advocate.slice(0, 300)}...
+Round ${i + 1}: Score ${r.score.score}/100
+Strongest: ${r.score.verdict}
+Gap: ${r.score.critical_gap}
+Advocate: ${r.advocate.slice(0, 300)}...
     `,
         )
         .join("\n");
@@ -887,7 +1027,15 @@ Round ${i + 1}:
         rounds_summary: roundsSummary,
         evidence_secured: securedEvidence,
       });
+
       setOpeningStatement(res.data.opening_statement);
+
+      if (user && currentCaseId) {
+        await supabase.from("opening_statements").upsert({
+          case_id: currentCaseId,
+          content: res.data.opening_statement,
+        });
+      }
     } catch (e) {
       alert("Error generating opening statement");
     }
@@ -908,7 +1056,6 @@ Round ${i + 1}:
           top: 0,
           background: "var(--navy)",
           zIndex: 10,
-          backdropFilter: "blur(8px)",
         }}
       >
         <i
@@ -922,18 +1069,11 @@ Round ${i + 1}:
               fontWeight: 700,
               fontSize: "20px",
               color: "var(--white)",
-              letterSpacing: "-0.2px",
             }}
           >
             TrialMind
           </div>
-          <div
-            style={{
-              fontSize: "12px",
-              color: "var(--muted)",
-              letterSpacing: "0.04em",
-            }}
-          >
+          <div style={{ fontSize: "12px", color: "var(--muted)" }}>
             AI Adversarial Case Preparation
           </div>
         </div>
@@ -952,6 +1092,19 @@ Round ${i + 1}:
             {checklist.filter((i) => i.have).length}/{checklist.length} evidence
             secured
           </div>
+        )}
+        {user && onBackToDashboard && (
+          <button
+            className="btn-secondary"
+            onClick={onBackToDashboard}
+            style={{ padding: "6px 14px", fontSize: "12px" }}
+          >
+            <i
+              className="fa-solid fa-arrow-left"
+              style={{ marginRight: "6px" }}
+            />
+            My Cases
+          </button>
         )}
         {started && (
           <span style={{ fontSize: "13px", color: "var(--muted)" }}>
@@ -1512,6 +1665,32 @@ Round ${i + 1}:
             </div>
           </div>
         )}
+      </div>
+      {/* Footer — add here */}
+      <div
+        style={{
+          borderTop: "1px solid var(--border)",
+          padding: "1.5rem 2rem",
+          textAlign: "center",
+          marginTop: "2rem",
+        }}
+      >
+        <p
+          style={{
+            fontSize: "12px",
+            color: "var(--muted)",
+            fontStyle: "italic",
+            maxWidth: "600px",
+            margin: "0 auto",
+          }}
+        >
+          <i
+            className="fa-solid fa-circle-info"
+            style={{ marginRight: "6px", color: "var(--gold-dim)" }}
+          />
+          TrialMind is not a substitute for legal advice. For serious matters,
+          consult a licensed attorney in your jurisdiction.
+        </p>
       </div>
     </div>
   );
