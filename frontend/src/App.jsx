@@ -4,74 +4,75 @@ import axios from "axios"
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
 const CASE_TYPES = [
-  { id: "landlord", label: "🏠 Landlord Dispute", desc: "Security deposit, eviction, habitability" },
-  { id: "employment", label: "💼 Employment", desc: "Wrongful termination, unpaid wages" },
-  { id: "small_claims", label: "⚖️ Small Claims", desc: "Debt, property damage, fraud" },
-  { id: "contract", label: "📄 Contract Breach", desc: "Non-payment, failed delivery" },
-  { id: "other", label: "✳️ Other", desc: "Any civil dispute not listed above" },
+  { id: "landlord",     icon: "fa-solid fa-house",          label: "Landlord Dispute",  desc: "Deposit, eviction, habitability" },
+  { id: "employment",   icon: "fa-solid fa-briefcase",       label: "Employment",        desc: "Termination, wages, discrimination" },
+  { id: "small_claims", icon: "fa-solid fa-scale-balanced",  label: "Small Claims",      desc: "Debt, property damage, fraud" },
+  { id: "contract",     icon: "fa-solid fa-file-contract",   label: "Contract Breach",   desc: "Non-payment, failed delivery" },
+  { id: "other",        icon: "fa-solid fa-ellipsis",        label: "Other",             desc: "Any civil dispute" },
 ]
 
-const PRIORITY_COLORS = {
-  high: { bg: "#1f0d0d", border: "#991b1b", text: "#f87171", label: "HIGH" },
-  medium: { bg: "#1a1400", border: "#854d0e", text: "#fbbf24", label: "MED" },
-  low: { bg: "#0d1f12", border: "#166534", text: "#4ade80", label: "LOW" },
+const PRIORITY = {
+  high:   { bg: "rgba(192,57,43,0.1)",   border: "rgba(192,57,43,0.4)",   color: "#e74c3c", label: "HIGH" },
+  medium: { bg: "rgba(180,130,40,0.1)",  border: "rgba(180,130,40,0.4)",  color: "#c8a030", label: "MED"  },
+  low:    { bg: "rgba(46,139,87,0.1)",   border: "rgba(46,139,87,0.4)",   color: "#2e8b57", label: "LOW"  },
 }
 
-const ScoreBar = ({ score, prev }) => {
-  const color = score < 40 ? "#ef4444" : score < 60 ? "#f59e0b" : score < 80 ? "#3b82f6" : "#22c55e"
-  const label = score < 40 ? "Weak" : score < 60 ? "Developing" : score < 80 ? "Strong" : "Excellent"
-  const diff = prev !== null ? score - prev : null
+function ScoreBar({ score, prev }) {
+  const color  = score < 40 ? "#c0392b" : score < 60 ? "#c8a030" : score < 80 ? "#4a7fa5" : "#2e8b57"
+  const label  = score < 40 ? "Weak" : score < 60 ? "Developing" : score < 80 ? "Strong" : "Excellent"
+  const diff   = prev !== null ? score - prev : null
 
   return (
-    <div style={{ marginBottom: "1rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", alignItems: "center" }}>
-        <span style={{ fontSize: "13px", color: "#6b7280" }}>Case Readiness</span>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          Case Readiness Score
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {diff !== null && (
-            <span style={{
-              fontSize: "12px", fontWeight: 600,
-              color: diff > 0 ? "#22c55e" : diff < 0 ? "#ef4444" : "#6b7280"
-            }}>
-              {diff > 0 ? `↑ +${diff}` : diff < 0 ? `↓ ${diff}` : "→ no change"}
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600,
+              color: diff > 0 ? "#2e8b57" : diff < 0 ? "#c0392b" : "var(--muted)" }}>
+              {diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : "— no change"}
             </span>
           )}
-          <span style={{ fontSize: "13px", fontWeight: 700, color }}>{score}/100 — {label}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "14px", fontWeight: 600, color }}>
+            {score} / 100
+          </span>
+          <span style={{ fontSize: "12px", color: "var(--muted)", fontStyle: "italic" }}>— {label}</span>
         </div>
       </div>
-      <div style={{ background: "#1f2937", borderRadius: "999px", height: "10px", overflow: "hidden" }}>
+      <div style={{ background: "var(--navy-4)", borderRadius: "2px", height: "6px", overflow: "hidden" }}>
         <div style={{
-          width: `${score}%`, height: "100%", background: color,
-          borderRadius: "999px", transition: "width 1s ease"
+          width: `${score}%`, height: "100%", background: color, borderRadius: "2px",
+          animation: "scoreIn 1s ease both", transition: "width 1s ease"
         }} />
       </div>
     </div>
   )
 }
 
-const PersonaCard = ({ title, icon, content, borderColor, bgColor }) => {
+function PersonaCard({ title, icon, content, accentColor, bgColor, borderColor }) {
   const [collapsed, setCollapsed] = useState(false)
   return (
-    <div style={{
-      background: bgColor, border: `1px solid ${borderColor}`,
-      borderRadius: "12px", marginBottom: "1rem", overflow: "hidden"
+    <div className="persona-card card" style={{
+      borderColor, background: bgColor, marginBottom: "1rem", overflow: "hidden"
     }}>
-      <div
-        onClick={() => setCollapsed(!collapsed)}
-        style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "1rem 1.25rem", cursor: "pointer"
-        }}
-      >
-        <span style={{ fontSize: "13px", fontWeight: 600, color: borderColor }}>
-          {icon} {title}
-        </span>
-        <span style={{ color: "#6b7280", fontSize: "12px" }}>{collapsed ? "▼ show" : "▲ hide"}</span>
+      <div onClick={() => setCollapsed(!collapsed)} style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "1rem 1.25rem", cursor: "pointer",
+        borderBottom: collapsed ? "none" : `1px solid ${borderColor}`
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <i className={icon} style={{ color: accentColor, fontSize: "14px", width: "16px" }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "15px", fontWeight: 600, color: accentColor }}>
+            {title}
+          </span>
+        </div>
+        <i className={`fa-solid ${collapsed ? "fa-chevron-down" : "fa-chevron-up"}`}
+           style={{ color: "var(--muted)", fontSize: "11px" }} />
       </div>
       {!collapsed && (
-        <div style={{
-          padding: "0 1.25rem 1.25rem",
-          fontSize: "14px", color: "#d1d5db", lineHeight: "1.8", whiteSpace: "pre-wrap"
-        }}>
+        <div style={{ padding: "1.25rem", fontSize: "14px", color: "#c8d0e0", lineHeight: "1.85", whiteSpace: "pre-wrap" }}>
           {content}
         </div>
       )}
@@ -79,132 +80,142 @@ const PersonaCard = ({ title, icon, content, borderColor, bgColor }) => {
   )
 }
 
-const EvidenceChecklist = ({ checklist, onToggle }) => (
-  <div style={{
-    background: "#161b27", border: "1px solid #1f2937",
-    borderRadius: "12px", padding: "1.25rem", marginBottom: "1.5rem"
-  }}>
-    <div style={{ fontSize: "13px", fontWeight: 600, color: "#9ca3af", marginBottom: "12px" }}>
-      📋 EVIDENCE CHECKLIST
-    </div>
-    {checklist.map((item, i) => {
-      const p = PRIORITY_COLORS[item.priority] || PRIORITY_COLORS.low
-      return (
-        <div key={i} onClick={() => onToggle(i)} style={{
-          display: "flex", alignItems: "flex-start", gap: "10px",
-          padding: "8px 10px", borderRadius: "8px", cursor: "pointer",
-          marginBottom: "4px", background: item.have ? "#0d1f12" : "transparent",
-          border: item.have ? "1px solid #166534" : "1px solid transparent",
-          transition: "all 0.2s"
-        }}>
-          <div style={{
-            width: "18px", height: "18px", borderRadius: "4px", flexShrink: 0,
-            border: `1.5px solid ${item.have ? "#22c55e" : "#374151"}`,
-            background: item.have ? "#22c55e" : "transparent",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            marginTop: "1px"
-          }}>
-            {item.have && <span style={{ color: "#000", fontSize: "11px", fontWeight: 700 }}>✓</span>}
-          </div>
-          <span style={{
-            fontSize: "14px", color: item.have ? "#6b7280" : "#d1d5db",
-            textDecoration: item.have ? "line-through" : "none", flex: 1,
-            lineHeight: "1.5"
-          }}>
-            {item.item}
-          </span>
-          <span style={{
-            fontSize: "10px", fontWeight: 700, padding: "2px 6px",
-            borderRadius: "4px", background: p.bg, color: p.text,
-            border: `1px solid ${p.border}`, flexShrink: 0
-          }}>
-            {p.label}
+function EvidenceChecklist({ checklist, onToggle }) {
+  const have = checklist.filter(i => i.have).length
+  return (
+    <div className="card" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <i className="fa-solid fa-clipboard-list" style={{ color: "var(--gold)", fontSize: "13px" }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "15px", fontWeight: 600, color: "var(--gold)" }}>
+            Evidence Checklist
           </span>
         </div>
-      )
-    })}
-  </div>
-)
-
-const RoundBlock = ({ round, userResponse, prevScore }) => (
-  <div style={{ marginBottom: "2rem" }}>
-    <div style={{
-      fontSize: "11px", fontWeight: 600, color: "#6b7280",
-      letterSpacing: "0.08em", marginBottom: "1.25rem",
-      display: "flex", alignItems: "center", gap: "10px"
-    }}>
-      <div style={{ flex: 1, height: "1px", background: "#1f2937" }} />
-      {round.label}
-      <div style={{ flex: 1, height: "1px", background: "#1f2937" }} />
-    </div>
-
-    {userResponse && (
-      <div style={{
-        background: "#0f1f2e", border: "1px solid #1e3a5f",
-        borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem"
-      }}>
-        <div style={{ fontSize: "13px", fontWeight: 600, color: "#60a5fa", marginBottom: "8px" }}>
-          👤 Your Response
-        </div>
-        <div style={{ fontSize: "14px", color: "#d1d5db", lineHeight: "1.7" }}>
-          {userResponse}
-        </div>
-      </div>
-    )}
-
-    <ScoreBar score={round.score.score} prev={prevScore} />
-
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-      {CASE_TYPES.slice(0, 4).map(ct => (
-        <div key={ct.id} onClick={() => setCaseType(ct.id)} style={{
-          padding: "10px 14px", borderRadius: "10px", cursor: "pointer",
-          border: `1px solid ${caseType === ct.id ? "#3b82f6" : "#374151"}`,
-          background: caseType === ct.id ? "#0c1929" : "transparent",
-          transition: "all 0.15s"
-        }}>
-          <div style={{ fontSize: "13px", fontWeight: 500, color: caseType === ct.id ? "#60a5fa" : "#d1d5db" }}>
-            {ct.label}
-          </div>
-          <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>{ct.desc}</div>
-        </div>
-      ))}
-      {/* Other — full width, subtle link style */}
-      <div
-        onClick={() => setCaseType("other")}
-        style={{ gridColumn: "span 2", textAlign: "center", padding: "8px", cursor: "pointer" }}
-      >
-        <span style={{ fontSize: "13px", color: "#6b7280" }}>
-          None of these?{" "}
-          <span style={{
-            color: caseType === "other" ? "#60a5fa" : "#60a5fa",
-            textDecoration: "underline", textUnderlineOffset: "3px",
-            fontWeight: caseType === "other" ? 600 : 400
-          }}>
-            {caseType === "other" ? "✓ Using: Other / Custom case" : "Describe any other civil dispute"}
-          </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--muted)" }}>
+          {have} / {checklist.length} secured
         </span>
       </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        {checklist.map((item, i) => {
+          const p = PRIORITY[item.priority] || PRIORITY.low
+          return (
+            <div key={i} className="checklist-item" onClick={() => onToggle(i)} style={{
+              display: "flex", alignItems: "center", gap: "12px", padding: "9px 10px",
+              background: item.have ? "rgba(46,139,87,0.07)" : "transparent",
+              border: item.have ? "1px solid rgba(46,139,87,0.2)" : "1px solid transparent"
+            }}>
+              <div style={{
+                width: "18px", height: "18px", borderRadius: "2px", flexShrink: 0,
+                border: `1.5px solid ${item.have ? "#2e8b57" : "var(--muted)"}`,
+                background: item.have ? "#2e8b57" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                {item.have && <i className="fa-solid fa-check" style={{ color: "#fff", fontSize: "10px" }} />}
+              </div>
+              <span style={{
+                flex: 1, fontSize: "14px", lineHeight: "1.5",
+                color: item.have ? "var(--muted)" : "#c8d0e0",
+                textDecoration: item.have ? "line-through" : "none"
+              }}>
+                {item.item}
+              </span>
+              <span style={{
+                fontSize: "10px", fontFamily: "var(--font-mono)", fontWeight: 600,
+                padding: "2px 7px", borderRadius: "2px",
+                background: p.bg, color: p.color, border: `1px solid ${p.border}`
+              }}>
+                {p.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
+  )
+}
 
-    <PersonaCard title="Your Advocate" icon="🛡️" content={round.advocate}
-      borderColor="#3b82f6" bgColor="#0c1929" />
-    <PersonaCard title="Opposing Counsel" icon="⚔️" content={round.opposition}
-      borderColor="#ef4444" bgColor="#1a0a0a" />
-    <PersonaCard title="The Judge" icon="🔨" content={round.judge}
-      borderColor="#a855f7" bgColor="#130d1a" />
-  </div>
-)
+function RoundDivider({ label }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: "16px",
+      margin: "2rem 0 1.5rem"
+    }}>
+      <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+        <i className="fa-solid fa-scale-balanced" style={{ color: "var(--gold)", fontSize: "12px" }} />
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--gold)",
+          letterSpacing: "0.1em", textTransform: "uppercase"
+        }}>
+          {label}
+        </span>
+        <i className="fa-solid fa-scale-balanced" style={{ color: "var(--gold)", fontSize: "12px" }} />
+      </div>
+      <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+    </div>
+  )
+}
+
+function RoundBlock({ round, userResponse, prevScore }) {
+  return (
+    <div className="round-block">
+      <RoundDivider label={round.label} />
+
+      {userResponse && (
+        <div className="card" style={{
+          borderColor: "rgba(74,127,165,0.3)", background: "rgba(74,127,165,0.06)",
+          padding: "1.25rem", marginBottom: "1rem"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <i className="fa-solid fa-user" style={{ color: "#4a7fa5", fontSize: "12px" }} />
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "14px", fontWeight: 600, color: "#4a7fa5" }}>
+              Your Response
+            </span>
+          </div>
+          <div style={{ fontSize: "14px", color: "#c8d0e0", lineHeight: "1.75" }}>{userResponse}</div>
+        </div>
+      )}
+
+      <ScoreBar score={round.score.score} prev={prevScore} />
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "1.25rem" }}>
+        <div className="card" style={{ borderColor: "rgba(46,139,87,0.3)", background: "rgba(46,139,87,0.07)", padding: "1rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "#2e8b57", letterSpacing: "0.1em", marginBottom: "6px" }}>
+            <i className="fa-solid fa-shield-halved" style={{ marginRight: "6px" }} />STRONGEST POINT
+          </div>
+          <div style={{ fontSize: "13px", color: "#c8d0e0", lineHeight: "1.6" }}>{round.score.verdict}</div>
+        </div>
+        <div className="card" style={{ borderColor: "rgba(192,57,43,0.3)", background: "rgba(192,57,43,0.07)", padding: "1rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "#e74c3c", letterSpacing: "0.1em", marginBottom: "6px" }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }} />CRITICAL GAP
+          </div>
+          <div style={{ fontSize: "13px", color: "#c8d0e0", lineHeight: "1.6" }}>{round.score.critical_gap}</div>
+        </div>
+      </div>
+
+      <PersonaCard title="Your Advocate" icon="fa-solid fa-shield-halved"
+        content={round.advocate} accentColor="#4a7fa5"
+        bgColor="rgba(74,127,165,0.06)" borderColor="rgba(74,127,165,0.25)" />
+      <PersonaCard title="Opposing Counsel" icon="fa-solid fa-gavel"
+        content={round.opposition} accentColor="#c0392b"
+        bgColor="rgba(192,57,43,0.06)" borderColor="rgba(192,57,43,0.25)" />
+      <PersonaCard title="The Judge" icon="fa-solid fa-landmark"
+        content={round.judge} accentColor="#7c5cbf"
+        bgColor="rgba(124,92,191,0.06)" borderColor="rgba(124,92,191,0.25)" />
+    </div>
+  )
+}
 
 export default function App() {
-  const [caseText, setCaseText] = useState("")
-  const [caseType, setCaseType] = useState("landlord")
+  const [caseText, setCaseText]       = useState("")
+  const [caseType, setCaseType]       = useState("landlord")
   const [userResponse, setUserResponse] = useState("")
-  const [rounds, setRounds] = useState([])
+  const [rounds, setRounds]           = useState([])
   const [userResponses, setUserResponses] = useState([])
-  const [checklist, setChecklist] = useState([])
-  const [history, setHistory] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [started, setStarted] = useState(false)
+  const [checklist, setChecklist]     = useState([])
+  const [history, setHistory]         = useState([])
+  const [loading, setLoading]         = useState(false)
+  const [started, setStarted]         = useState(false)
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -221,7 +232,7 @@ export default function App() {
         conversation_history: []
       })
       setRounds([{
-        label: "ROUND 1 — INITIAL ANALYSIS",
+        label: "Initial Analysis",
         advocate: res.data.advocate,
         opposition: res.data.opposition,
         judge: res.data.judge,
@@ -248,7 +259,7 @@ export default function App() {
         conversation_history: history
       })
       setRounds(prev => [...prev, {
-        label: `ROUND ${prev.length + 1} — AFTER YOUR RESPONSE`,
+        label: `Round ${prev.length + 1} — After Your Response`,
         advocate: res.data.advocate,
         opposition: res.data.opposition,
         judge: res.data.judge,
@@ -263,113 +274,160 @@ export default function App() {
     setLoading(false)
   }
 
-  const toggleChecklist = (i) => {
-    setChecklist(prev => prev.map((item, idx) =>
-      idx === i ? { ...item, have: !item.have } : item
-    ))
-  }
+  const toggleChecklist = i =>
+    setChecklist(prev => prev.map((item, idx) => idx === i ? { ...item, have: !item.have } : item))
 
   const reset = () => {
     setCaseText(""); setUserResponse(""); setRounds([])
     setUserResponses([]); setChecklist([]); setHistory([]); setStarted(false)
   }
 
-  const haveCount = checklist.filter(i => i.have).length
+  const selectedType = CASE_TYPES.find(c => c.id === caseType)
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f1117", color: "#f9fafb", fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "var(--navy)" }}>
 
       {/* Header */}
-      <div style={{
-        borderBottom: "1px solid #1f2937", padding: "1rem 2rem",
-        display: "flex", alignItems: "center", gap: "12px",
-        position: "sticky", top: 0, background: "#0f1117", zIndex: 10
+      <header style={{
+        borderBottom: "1px solid var(--border)", padding: "1rem 2rem",
+        display: "flex", alignItems: "center", gap: "14px",
+        position: "sticky", top: 0, background: "var(--navy)", zIndex: 10,
+        backdropFilter: "blur(8px)"
       }}>
-        <span style={{ fontSize: "22px" }}>⚖️</span>
+        <i className="fa-solid fa-scale-balanced" style={{ color: "var(--gold)", fontSize: "20px" }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>TrialMind</div>
-          <div style={{ fontSize: "12px", color: "#6b7280" }}>AI adversarial case preparation for pro-se litigants</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "20px", color: "var(--white)", letterSpacing: "-0.2px" }}>
+            TrialMind
+          </div>
+          <div style={{ fontSize: "12px", color: "var(--muted)", letterSpacing: "0.04em" }}>
+            AI Adversarial Case Preparation
+          </div>
         </div>
         {checklist.length > 0 && (
-          <div style={{ fontSize: "13px", color: "#6b7280" }}>
-            Evidence: <span style={{ color: "#22c55e", fontWeight: 600 }}>{haveCount}/{checklist.length}</span>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--muted)" }}>
+            <i className="fa-solid fa-clipboard-check" style={{ color: "var(--gold)", marginRight: "6px" }} />
+            {checklist.filter(i => i.have).length}/{checklist.length} evidence secured
           </div>
         )}
         {started && (
-          <button onClick={reset} style={{
-            background: "transparent", color: "#6b7280", border: "1px solid #374151",
-            borderRadius: "8px", padding: "6px 14px", fontSize: "13px", cursor: "pointer"
-          }}>New Case</button>
+          <span style={{ fontSize: "13px", color: "var(--muted)" }}>
+            Done?{" "}
+            <span className="text-link" onClick={reset}>Start a new case</span>
+          </span>
         )}
-      </div>
+      </header>
 
-      {/* Hero — only before start */}
+      {/* Hero */}
       {!started && (
-        <div style={{ textAlign: "center", padding: "3rem 1.5rem 1rem" }}>
-          <div style={{ fontSize: "42px", marginBottom: "12px" }}>⚖️</div>
-          <h1 style={{ fontSize: "32px", fontWeight: 700, letterSpacing: "-0.5px", marginBottom: "10px" }}>
-            Know your case before you walk in.
+        <div style={{ textAlign: "center", padding: "4rem 1.5rem 2rem" }}>
+          <div style={{ marginBottom: "1.5rem" }}>
+            <i className="fa-solid fa-scale-balanced" style={{ color: "var(--gold)", fontSize: "48px" }} />
+          </div>
+          <div className="gold-rule" />
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontSize: "clamp(28px, 5vw, 44px)",
+            fontWeight: 700, letterSpacing: "-0.5px", lineHeight: "1.2",
+            marginBottom: "1rem", color: "var(--white)"
+          }}>
+            Know your case before<br />you walk into court.
           </h1>
-          <p style={{ fontSize: "16px", color: "#6b7280", maxWidth: "520px", margin: "0 auto 2rem", lineHeight: "1.6" }}>
-            TrialMind simulates your advocate, opposing counsel, and the judge —
-            so you find the weaknesses before they do.
+          <p style={{ fontSize: "16px", color: "var(--muted)", maxWidth: "480px", margin: "0 auto 0.75rem", lineHeight: "1.7", fontWeight: 300 }}>
+            TrialMind deploys three AI legal minds simultaneously — your advocate,
+            opposing counsel, and the judge — exposing every weakness before they do.
           </p>
-          
+          <p style={{ fontSize: "13px", color: "var(--muted)" }}>
+            Used TrialMind before?{" "}
+            <span className="text-link" onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}>
+              Jump to your case
+            </span>
+          </p>
         </div>
       )}
 
-      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "1rem 1.5rem 3rem" }}>
+      <div style={{ maxWidth: "860px", margin: "0 auto", padding: "1.5rem 1.5rem 4rem" }}>
 
-        {/* Case input */}
-        <div style={{
-          background: "#161b27", border: "1px solid #1f2937",
-          borderRadius: "16px", padding: "1.5rem", marginBottom: "1.5rem"
-        }}>
+        {/* Case input card */}
+        <div className="card" style={{ padding: "1.75rem", marginBottom: "1.5rem" }}>
+
           {/* Case type selector */}
           {!started && (
-            <div style={{ marginBottom: "1.25rem" }}>
-              <div style={{ fontSize: "13px", color: "#9ca3af", marginBottom: "10px" }}>CASE TYPE</div>
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "10px" }}>
+                Case Type
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {CASE_TYPES.map(ct => (
-                  <div key={ct.id} onClick={() => setCaseType(ct.id)} style={{
-                    padding: "10px 14px", borderRadius: "10px", cursor: "pointer",
-                    border: `1px solid ${caseType === ct.id ? "#3b82f6" : "#374151"}`,
-                    background: caseType === ct.id ? "#0c1929" : "transparent",
-                    transition: "all 0.15s"
+                {CASE_TYPES.slice(0, 4).map(ct => (
+                  <div key={ct.id} className="case-type-card" onClick={() => setCaseType(ct.id)} style={{
+                    padding: "11px 14px",
+                    border: `1px solid ${caseType === ct.id ? "var(--gold)" : "var(--border-dim)"}`,
+                    background: caseType === ct.id ? "var(--gold-bg)" : "transparent",
                   }}>
-                    <div style={{ fontSize: "13px", fontWeight: 500, color: caseType === ct.id ? "#60a5fa" : "#d1d5db" }}>
-                      {ct.label}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "2px" }}>
+                      <i className={ct.icon} style={{ color: caseType === ct.id ? "var(--gold)" : "var(--muted)", fontSize: "12px", width: "14px" }} />
+                      <span style={{ fontSize: "13px", fontWeight: 500, color: caseType === ct.id ? "var(--gold)" : "var(--white)" }}>
+                        {ct.label}
+                      </span>
                     </div>
-                    <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>{ct.desc}</div>
+                    <div style={{ fontSize: "12px", color: "var(--muted)", paddingLeft: "22px" }}>{ct.desc}</div>
                   </div>
                 ))}
+              </div>
+              {/* Other — text link style */}
+              <div style={{ textAlign: "center", marginTop: "10px" }}>
+                <span style={{ fontSize: "13px", color: "var(--muted)" }}>
+                  None of these?{" "}
+                  <span
+                    className="text-link"
+                    onClick={() => setCaseType("other")}
+                    style={{ fontWeight: caseType === "other" ? 600 : 400 }}
+                  >
+                    {caseType === "other"
+                      ? <><i className="fa-solid fa-check" style={{ marginRight: "5px" }} />Using: Other / Custom case</>
+                      : "Describe any other civil dispute"}
+                  </span>
+                </span>
               </div>
             </div>
           )}
 
-          <div style={{ fontSize: "13px", color: "#9ca3af", marginBottom: "8px" }}>YOUR CASE</div>
+          {/* Locked case type display */}
+          {started && selectedType && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem" }}>
+              <i className={selectedType.icon} style={{ color: "var(--gold)", fontSize: "13px" }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--gold)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                {selectedType.label}
+              </span>
+            </div>
+          )}
+
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>
+            Your Case
+          </div>
           <textarea
             value={caseText}
             onChange={e => setCaseText(e.target.value)}
-            placeholder="Describe your situation in plain language. What happened? What do you want? What evidence do you have?"
+            placeholder="Describe your situation in plain language — what happened, what you want, and what evidence you have."
             disabled={started}
             style={{
-              width: "100%", minHeight: "110px", background: "#0f1117",
-              border: "1px solid #374151", borderRadius: "8px", padding: "12px",
-              color: "#f9fafb", fontSize: "14px", lineHeight: "1.6",
-              resize: "vertical", outline: "none", boxSizing: "border-box",
+              width: "100%", minHeight: "120px",
+              background: "var(--navy-2)", border: "1px solid var(--border-dim)",
+              borderRadius: "3px", padding: "14px",
+              color: "var(--white)", fontSize: "14px", lineHeight: "1.7",
+              fontFamily: "var(--font-body)", resize: "vertical", outline: "none",
+              boxSizing: "border-box",
               opacity: started ? 0.5 : 1, cursor: started ? "not-allowed" : "text"
             }}
           />
+
           {!started && (
-            <button onClick={analyzeCase} disabled={loading || !caseText.trim()} style={{
-              marginTop: "12px", background: loading ? "#374151" : "#3b82f6",
-              color: "#fff", border: "none", borderRadius: "8px",
-              padding: "11px 28px", fontSize: "14px", fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer", transition: "background 0.2s"
-            }}>
-              {loading ? "Analyzing your case..." : "Analyze My Case →"}
-            </button>
+            <div style={{ marginTop: "14px" }}>
+              <button className="btn-primary" onClick={analyzeCase} disabled={loading || !caseText.trim()}>
+                {loading
+                  ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: "8px" }} />Analyzing...</>
+                  : <><i className="fa-solid fa-magnifying-glass" style={{ marginRight: "8px" }} />Analyze My Case</>
+                }
+              </button>
+            </div>
           )}
         </div>
 
@@ -391,44 +449,44 @@ export default function App() {
         {/* Loading between rounds */}
         {loading && rounds.length > 0 && (
           <div style={{
-            textAlign: "center", color: "#6b7280", fontSize: "14px",
-            padding: "2rem", border: "1px dashed #374151", borderRadius: "12px",
-            marginBottom: "1.5rem"
+            textAlign: "center", color: "var(--muted)", fontSize: "14px",
+            padding: "2rem", border: "1px dashed var(--border)", borderRadius: "4px",
+            marginTop: "1rem", fontStyle: "italic"
           }}>
-            ⚖️ The court is deliberating...
+            <i className="fa-solid fa-scale-balanced fa-beat-fade" style={{ color: "var(--gold)", marginRight: "10px" }} />
+            The court is deliberating...
           </div>
         )}
 
         {/* Response box */}
         {started && !loading && (
-          <div style={{
-            background: "#161b27", border: "1px solid #374151",
-            borderRadius: "16px", padding: "1.5rem"
-          }} ref={bottomRef}>
-            <div style={{ fontSize: "13px", color: "#9ca3af", marginBottom: "8px" }}>
-              YOUR RESPONSE — address the attacks, answer the judge, add new evidence
+          <div className="card" style={{ padding: "1.75rem", marginTop: "1.5rem" }} ref={bottomRef}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>
+              <i className="fa-solid fa-reply" style={{ marginRight: "8px" }} />
+              Your Response
             </div>
+            <p style={{ fontSize: "13px", color: "var(--muted)", marginBottom: "10px", fontStyle: "italic" }}>
+              Address the opposition's attacks, answer the judge's questions, and add any new evidence.
+            </p>
             <textarea
               value={userResponse}
               onChange={e => setUserResponse(e.target.value)}
-              placeholder="Respond to the opposition's attacks. Add new evidence. Answer the judge's questions..."
+              placeholder="Type your response here..."
               style={{
-                width: "100%", minHeight: "100px", background: "#0f1117",
-                border: "1px solid #374151", borderRadius: "8px", padding: "12px",
-                color: "#f9fafb", fontSize: "14px", lineHeight: "1.6",
-                resize: "vertical", outline: "none", boxSizing: "border-box"
+                width: "100%", minHeight: "100px",
+                background: "var(--navy-2)", border: "1px solid var(--border-dim)",
+                borderRadius: "3px", padding: "14px",
+                color: "var(--white)", fontSize: "14px", lineHeight: "1.7",
+                fontFamily: "var(--font-body)", resize: "vertical", outline: "none",
+                boxSizing: "border-box"
               }}
             />
-            <button onClick={submitResponse} disabled={!userResponse.trim()} style={{
-              marginTop: "12px",
-              background: !userResponse.trim() ? "#374151" : "#7c3aed",
-              color: "#fff", border: "none", borderRadius: "8px",
-              padding: "11px 28px", fontSize: "14px", fontWeight: 600,
-              cursor: !userResponse.trim() ? "not-allowed" : "pointer",
-              transition: "background 0.2s"
-            }}>
-              Submit Response →
-            </button>
+            <div style={{ marginTop: "14px" }}>
+              <button className="btn-primary" onClick={submitResponse} disabled={!userResponse.trim()}>
+                <i className="fa-solid fa-paper-plane" style={{ marginRight: "8px" }} />
+                Submit Response
+              </button>
+            </div>
           </div>
         )}
       </div>
