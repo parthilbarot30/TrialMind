@@ -223,6 +223,11 @@ class ClosingInput(BaseModel):
     rounds_summary: str
     jurisdiction: str = "General US"
 
+class AutoCheckInput(BaseModel):
+    case_description: str
+    user_responses: list = []
+    checklist_items: list = []
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def get_readiness_score(case_description: str, history: list, case_type: str) -> dict:
@@ -518,10 +523,6 @@ Make items specific to {data.case_type} cases. Output ONLY the JSON."""
         "closing_argument": closing_response.choices[0].message.content,
         "court_prep": court_prep.get("checklist", [])
     }
-    class AutoCheckInput(BaseModel):
-    case_description: str
-    user_responses: list = []
-    checklist_items: list = []
 
 @app.post("/auto-check")
 def auto_check_evidence(data: AutoCheckInput):
