@@ -518,3 +518,52 @@ Make items specific to {data.case_type} cases. Output ONLY the JSON."""
         "closing_argument": closing_response.choices[0].message.content,
         "court_prep": court_prep.get("checklist", [])
     }
+    class AutoCheckInput(BaseModel):
+    case_description: str
+    user_responses: list = []
+    checklist_items: list = []
+
+@app.post("/auto-check")
+def auto_check_evidence(data: AutoCheckInput):
+    combined_text = f"Case description:\n{data.case_description}\n\n"
+    if data.user_responses:
+        combined_text += "User's stated evidence and responses:\n"
+        for r in data.user_responses:
+            combined_text += f"- {r}\n"
+
+    items_text = "\n".join(f"{i}: {item}" for i, item in enumerate(data.checklist_items))
+
+    prompt = f"""You are a legal evidence analyst. Based on the text below, determine which 
+evidence items the person already has or has explicitly mentioned having.
+
+TEXT:
+{combined_text}
+
+CHECKLIST ITEMS (by index):
+{items_text}
+
+Return ONLY a JSON array of indices (0-based) for items the person clearly has or has mentioned.
+Be generous — if they mention something that clearly corresponds to an item, include it.
+Example output: [0, 2, 4]
+Output ONLY the JSON array. Nothing else."""
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are a precise legal evidence analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2,
+        max_tokens=100
+    )
+
+    try:
+        text = response.choices[0].message.content.strip()
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        checked_indices = json.loads(text.strip())
+        return {"checked_indices": checked_indices}
+    except:
+        return {"checked_indices": []}

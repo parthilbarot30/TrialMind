@@ -540,6 +540,12 @@ export default function App({
   const [loading, setLoading] = useState(false);
   const [started, setStarted] = useState(false);
   const bottomRef = useRef(null);
+  const [jurisdiction, setJurisdiction] = useState("General US");
+  const [caseReferences, setCaseReferences] = useState([]);
+  const [jurisdictionLaw, setJurisdictionLaw] = useState("");
+  const [closingArgument, setClosingArgument] = useState("");
+  const [courtPrep, setCourtPrep] = useState([]);
+  const [loadingClosing, setLoadingClosing] = useState(false);
 
   useEffect(() => {
     if (rounds.length > 0)
@@ -565,7 +571,11 @@ export default function App({
         .select("*")
         .eq("case_id", caseData.id)
         .order("round_number"),
-      supabase.from("checklist_items").select("*").eq("case_id", caseData.id),
+      supabase
+        .from("checklist_items")
+        .select("*")
+        .eq("case_id", caseData.id)
+        .order("created_at"),
       supabase
         .from("opening_statements")
         .select("*")
@@ -587,8 +597,8 @@ export default function App({
         },
       }));
       const loadedResponses = roundsData
-        .slice(1)
-        .map((r) => r.user_response || "");
+        .filter((r) => r.user_response)
+        .map((r) => r.user_response);
       setRounds(loadedRounds);
       setUserResponses(loadedResponses);
       setHistory(
@@ -602,10 +612,59 @@ export default function App({
       );
     }
 
-    if (checklistData) setChecklist(checklistData);
+    // Fix: load checklist with correct have values from database
+    if (checklistData && checklistData.length > 0) {
+      setChecklist(
+        checklistData.map((item) => ({
+          id: item.id,
+          item: item.item,
+          priority: item.priority,
+          have: item.have, // ← this was the bug, now explicitly loaded
+        })),
+      );
+    }
+
     if (openingData?.[0]) setOpeningStatement(openingData[0].content);
   };
+  const autoCheckEvidence = async (caseDesc, responses, currentChecklist) => {
+    if (!currentChecklist.length) return currentChecklist;
 
+    try {
+      const res = await axios.post(`${API}/auto-check`, {
+        case_description: caseDesc,
+        user_responses: responses,
+        checklist_items: currentChecklist.map((i) => i.item),
+      });
+
+      const checkedIndices = res.data.checked_indices || [];
+      if (!checkedIndices.length) return currentChecklist;
+
+      const updatedChecklist = currentChecklist.map((item, idx) => ({
+        ...item,
+        have: checkedIndices.includes(idx) ? true : item.have,
+      }));
+
+      // Save auto-checked items to Supabase
+      if (user && currentCaseId) {
+        const itemsToUpdate = updatedChecklist.filter(
+          (item, idx) => checkedIndices.includes(idx) && item.id,
+        );
+        await Promise.all(
+          itemsToUpdate.map((item) =>
+            supabase
+              .from("checklist_items")
+              .update({ have: true })
+              .eq("id", item.id),
+          ),
+        );
+      }
+
+      return updatedChecklist;
+    } catch (e) {
+      console.error("Auto-check failed:", e);
+      return currentChecklist;
+    }
+  };
   const analyzeCase = async () => {
     if (!caseText.trim()) return;
     setLoading(true);
@@ -613,6 +672,7 @@ export default function App({
       const res = await axios.post(`${API}/analyze`, {
         case_description: caseText,
         case_type: caseType,
+        jurisdiction,
         conversation_history: [],
       });
 
@@ -624,17 +684,12 @@ export default function App({
         score: res.data.score,
       };
 
-      setRounds([firstRound]);
-      setChecklist(res.data.checklist || []);
-      setUserResponses([]);
-      setHistory(res.data.history);
-      setStarted(true);
+      let newChecklist = res.data.checklist || [];
 
-      // Save to Supabase if logged in
+      // Save to Supabase first to get IDs
       if (user) {
         const title =
           caseText.slice(0, 60) + (caseText.length > 60 ? "..." : "");
-
         const { data: caseData } = await supabase
           .from("cases")
           .insert({
@@ -649,7 +704,7 @@ export default function App({
         if (caseData) {
           setCurrentCaseId(caseData.id);
 
-          await Promise.all([
+          const [roundResult, ...checklistResults] = await Promise.all([
             supabase.from("rounds").insert({
               case_id: caseData.id,
               round_number: 1,
@@ -661,17 +716,42 @@ export default function App({
               verdict: firstRound.score.verdict,
               critical_gap: firstRound.score.critical_gap,
             }),
-            ...(res.data.checklist || []).map((item) =>
-              supabase.from("checklist_items").insert({
-                case_id: caseData.id,
-                item: item.item,
-                priority: item.priority,
-                have: false,
-              }),
+            ...newChecklist.map((item) =>
+              supabase
+                .from("checklist_items")
+                .insert({
+                  case_id: caseData.id,
+                  item: item.item,
+                  priority: item.priority,
+                  have: false,
+                })
+                .select()
+                .single(),
             ),
           ]);
+
+          // Attach IDs from Supabase to checklist items
+          newChecklist = newChecklist.map((item, idx) => ({
+            ...item,
+            id: checklistResults[idx]?.data?.id || null,
+            have: false,
+          }));
+
+          // Auto-check based on case description
+          newChecklist = await autoCheckEvidence(caseText, [], newChecklist);
         }
+      } else {
+        // Guest user — auto-check without saving
+        newChecklist = await autoCheckEvidence(caseText, [], newChecklist);
       }
+
+      setRounds([firstRound]);
+      setChecklist(newChecklist);
+      setUserResponses([]);
+      setHistory(res.data.history);
+      setCaseReferences(res.data.case_references || []);
+      setJurisdictionLaw(res.data.jurisdiction_law || "");
+      setStarted(true);
     } catch (e) {
       alert("Backend error — is the server running?");
     }
@@ -685,6 +765,7 @@ export default function App({
       const res = await axios.post(`${API}/respond`, {
         case_description: caseText,
         case_type: caseType,
+        jurisdiction,
         user_response: userResponse,
         conversation_history: history,
       });
@@ -697,8 +778,18 @@ export default function App({
         score: res.data.score,
       };
 
+      const newUserResponses = [...userResponses, userResponse];
+
+      // Auto-check based on all responses so far
+      const updatedChecklist = await autoCheckEvidence(
+        caseText,
+        newUserResponses,
+        checklist,
+      );
+
       setRounds((prev) => [...prev, newRound]);
-      setUserResponses((prev) => [...prev, userResponse]);
+      setUserResponses(newUserResponses);
+      setChecklist(updatedChecklist);
       setHistory(res.data.history);
       setUserResponse("");
 
@@ -719,7 +810,9 @@ export default function App({
           }),
           supabase
             .from("cases")
-            .update({ updated_at: new Date().toISOString() })
+            .update({
+              updated_at: new Date().toISOString(),
+            })
             .eq("id", currentCaseId),
         ]);
       }
