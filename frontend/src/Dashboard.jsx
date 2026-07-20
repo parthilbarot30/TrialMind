@@ -43,8 +43,16 @@ export default function Dashboard({ user, onNewCase, onOpenCase, onSignOut }) {
     other: "fa-ellipsis"
   }
 
+  const CASE_TYPE_COLORS = {
+    landlord: "teal",
+    employment: "blue",
+    small_claims: "violet",
+    contract: "amber",
+    other: "slate"
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "var(--navy)" }}>
+    <div className="app-shell dashboard-shell" style={{ minHeight: "100vh", background: "var(--navy)" }}>
 
       {/* Header */}
       <header style={{
@@ -69,10 +77,10 @@ export default function Dashboard({ user, onNewCase, onOpenCase, onSignOut }) {
         </div>
       </header>
 
-      <div style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem 1.5rem" }}>
+      <div className="dashboard-content" style={{ maxWidth: "900px", margin: "0 auto", padding: "2rem 1.5rem" }}>
 
         {/* New case button */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+        <div className="dashboard-intro" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
           <div>
             <h2 style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600, color: "var(--white)", marginBottom: "4px" }}>
               Your Cases
@@ -94,13 +102,17 @@ export default function Dashboard({ user, onNewCase, onOpenCase, onSignOut }) {
             Loading your cases...
           </div>
         ) : cases.length === 0 ? (
-          <div className="card" style={{ padding: "4rem", textAlign: "center" }}>
-            <i className="fa-solid fa-folder-open" style={{ fontSize: "40px", color: "var(--gold-dim)", marginBottom: "1rem", display: "block" }} />
+          <div className="card empty-case-state" style={{ padding: "4rem", textAlign: "center" }}>
+            <div className="empty-case-mark" aria-hidden="true">
+              <i className="fa-solid fa-scale-balanced" />
+              <i className="fa-solid fa-file-lines" />
+            </div>
+            <span className="empty-case-eyebrow">Your private case library</span>
             <h3 style={{ fontFamily: "var(--font-display)", fontSize: "20px", color: "var(--white)", marginBottom: "8px" }}>
-              No cases yet
+              Begin with your first case
             </h3>
             <p style={{ fontSize: "14px", color: "var(--muted)", marginBottom: "1.5rem" }}>
-              Start your first case and TrialMind will save it here automatically.
+              Capture your situation, assess the arguments, and keep your court preparation organized in one place.
             </p>
             <button className="btn-primary" onClick={onNewCase}>
               <i className="fa-solid fa-plus" style={{ marginRight: "8px" }} />
@@ -110,16 +122,20 @@ export default function Dashboard({ user, onNewCase, onOpenCase, onSignOut }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {cases.map(c => (
-              <div key={c.id} className="card" style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "16px", cursor: "pointer" }}
+              <div key={c.id} className="card case-row" style={{ padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "16px", cursor: "pointer" }}
                 onClick={() => onOpenCase(c)}>
                 <i className={`fa-solid ${CASE_TYPE_ICONS[c.case_type] || "fa-scale-balanced"}`}
                   style={{ color: "var(--gold)", fontSize: "18px", width: "24px", flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--white)", marginBottom: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {c.title}
+                  <div className="case-row-title">
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {c.title}
+                    </div>
+                    <span className={`case-type-badge ${CASE_TYPE_COLORS[c.case_type] || "slate"}`}>
+                      {CASE_TYPE_LABELS[c.case_type] || "Other"}
+                    </span>
                   </div>
                   <div style={{ fontSize: "12px", color: "var(--muted)", display: "flex", gap: "14px" }}>
-                    <span><i className="fa-solid fa-tag" style={{ marginRight: "5px" }} />{CASE_TYPE_LABELS[c.case_type]}</span>
                     <span><i className="fa-solid fa-clock" style={{ marginRight: "5px" }} />{new Date(c.updated_at).toLocaleDateString()}</span>
                     <span><i className="fa-solid fa-rotate" style={{ marginRight: "5px" }} />{c.rounds?.[0]?.count || 0} rounds</span>
                   </div>

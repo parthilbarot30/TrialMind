@@ -18,10 +18,175 @@ const JURISDICTIONS = [
 ];
 
 const PRIORITY = {
-  high: { bg: "rgba(192,57,43,0.1)", border: "rgba(192,57,43,0.4)", color: "#e74c3c", label: "HIGH" },
-  medium: { bg: "rgba(180,130,40,0.1)", border: "rgba(180,130,40,0.4)", color: "#c8a030", label: "MED" },
-  low: { bg: "rgba(46,139,87,0.1)", border: "rgba(46,139,87,0.4)", color: "#2e8b57", label: "LOW" },
+  high:   { bg: "rgba(192,57,43,0.1)",  border: "rgba(192,57,43,0.4)",  color: "#e74c3c", label: "HIGH" },
+  medium: { bg: "rgba(180,130,40,0.1)", border: "rgba(180,130,40,0.4)", color: "#c8a030", label: "MED"  },
+  low:    { bg: "rgba(46,139,87,0.1)",  border: "rgba(46,139,87,0.4)",  color: "#2e8b57", label: "LOW"  },
 };
+
+const OBJECTIVE_ICONS = {
+  burden_of_proof: { icon: "fa-solid fa-weight-scale",    color: "#c8a96e" },
+  evidence:        { icon: "fa-solid fa-magnifying-glass", color: "#4a7fa5" },
+  argument:        { icon: "fa-solid fa-comments",         color: "#7c5cbf" },
+  jurisdiction:    { icon: "fa-solid fa-location-dot",     color: "#2e8b57" },
+  procedure:       { icon: "fa-solid fa-list-ol",          color: "#c0392b" },
+};
+
+// ── Learning Objectives ──────────────────────────────────────────────────────
+function LearningObjectives({ objectives, keyPrinciple }) {
+  if (!objectives?.length) return null;
+  return (
+    <div className="card" style={{ padding: "1.5rem", marginBottom: "1.5rem", border: "1px solid rgba(200,169,110,0.3)", background: "rgba(200,169,110,0.04)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+        <i className="fa-solid fa-graduation-cap" style={{ color: "var(--gold)", fontSize: "14px" }} />
+        <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--gold)" }}>
+          What You Will Learn
+        </span>
+      </div>
+      {keyPrinciple && (
+        <p style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic", marginBottom: "1.25rem", lineHeight: "1.6" }}>
+          {keyPrinciple}
+        </p>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+        {objectives.map((obj, i) => {
+          const iconData = OBJECTIVE_ICONS[obj.icon] || OBJECTIVE_ICONS.procedure;
+          return (
+            <div key={i} style={{ background: "var(--navy-2)", border: "1px solid var(--border-dim)", borderRadius: "4px", padding: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <i className={iconData.icon} style={{ color: iconData.color, fontSize: "12px" }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 600, color: iconData.color, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  {obj.concept}
+                </span>
+              </div>
+              <p style={{ fontSize: "13px", color: "#c8d0e0", lineHeight: "1.5", margin: 0 }}>
+                {obj.description}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Mastery Bars ─────────────────────────────────────────────────────────────
+function MasteryBars({ mastery }) {
+  if (!mastery || !Object.keys(mastery).length) return null;
+  const items = [
+    { key: "burden_of_proof",       label: "Burden of Proof",       color: "#c8a96e" },
+    { key: "evidence_reasoning",    label: "Evidence Reasoning",    color: "#4a7fa5" },
+    { key: "argument_structure",    label: "Argument Structure",    color: "#7c5cbf" },
+    { key: "legal_concept_mastery", label: "Legal Concept Mastery", color: "#2e8b57" },
+  ];
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "10px" }}>
+        <i className="fa-solid fa-chart-bar" style={{ marginRight: "6px" }} />Learning Mastery
+      </div>
+      {items.map(item => (
+        <div key={item.key} style={{ marginBottom: "8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+            <span style={{ fontSize: "12px", color: "var(--muted)" }}>{item.label}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600, color: item.color }}>
+              {mastery[item.key] || 0}%
+            </span>
+          </div>
+          <div style={{ background: "var(--navy-4)", borderRadius: "2px", height: "4px", overflow: "hidden" }}>
+            <div style={{ width: `${mastery[item.key] || 0}%`, height: "100%", background: item.color, borderRadius: "2px", transition: "width 1s ease" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Knowledge Check ───────────────────────────────────────────────────────────
+function KnowledgeCheck({ questions }) {
+  const [answers, setAnswers]   = useState({});
+  const [revealed, setRevealed] = useState({});
+
+  if (!questions?.length) return null;
+
+  const handleAnswer = (qIdx, optIdx) => {
+    if (revealed[qIdx]) return;
+    setAnswers(prev => ({ ...prev, [qIdx]: optIdx }));
+    setRevealed(prev => ({ ...prev, [qIdx]: true }));
+  };
+
+  return (
+    <div style={{ marginTop: "1rem" }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "12px" }}>
+        <i className="fa-solid fa-circle-question" style={{ marginRight: "6px" }} />Knowledge Check
+      </div>
+      {questions.map((q, qIdx) => (
+        <div key={qIdx} style={{ marginBottom: "1.25rem", background: "var(--navy-2)", border: "1px solid var(--border-dim)", borderRadius: "4px", padding: "1rem" }}>
+          <p style={{ fontSize: "14px", color: "var(--white)", fontWeight: 500, marginBottom: "10px", lineHeight: "1.5" }}>
+            {q.question}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {q.options?.map((opt, optIdx) => {
+              const isSelected = answers[qIdx] === optIdx;
+              const isCorrect  = q.correct === optIdx;
+              const isRevealed = revealed[qIdx];
+              let bg     = "transparent";
+              let border = "var(--border-dim)";
+              let color  = "#c8d0e0";
+              if (isRevealed && isCorrect)              { bg = "rgba(46,139,87,0.15)";  border = "rgba(46,139,87,0.5)";  color = "#4ade80"; }
+              if (isRevealed && isSelected && !isCorrect) { bg = "rgba(192,57,43,0.15)"; border = "rgba(192,57,43,0.5)"; color = "#f87171"; }
+              return (
+                <div key={optIdx} onClick={() => handleAnswer(qIdx, optIdx)} style={{ padding: "8px 12px", borderRadius: "3px", border: `1px solid ${border}`, background: bg, color, fontSize: "13px", cursor: isRevealed ? "default" : "pointer", transition: "all 0.2s", lineHeight: "1.5" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", marginRight: "8px", fontSize: "11px" }}>
+                    {String.fromCharCode(65 + optIdx)}.
+                  </span>
+                  {opt}
+                </div>
+              );
+            })}
+          </div>
+          {revealed[qIdx] && (
+            <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(200,169,110,0.08)", border: "1px solid rgba(200,169,110,0.2)", borderRadius: "3px", fontSize: "13px", color: "var(--gold)", lineHeight: "1.5" }}>
+              <i className="fa-solid fa-lightbulb" style={{ marginRight: "8px" }} />
+              {q.explanation}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Round Learning Recap ──────────────────────────────────────────────────────
+function RoundLearningRecap({ learning }) {
+  const [collapsed, setCollapsed] = useState(false);
+  if (!learning?.what_you_learned?.length) return null;
+  return (
+    <div className="card" style={{ border: "1px solid rgba(200,169,110,0.25)", background: "rgba(200,169,110,0.04)", marginTop: "1rem", overflow: "hidden" }}>
+      <div onClick={() => setCollapsed(!collapsed)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", cursor: "pointer" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <i className="fa-solid fa-graduation-cap" style={{ color: "var(--gold)", fontSize: "13px" }} />
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "15px", fontWeight: 600, color: "var(--gold)" }}>
+            What You Learned This Round
+          </span>
+        </div>
+        <i className={`fa-solid ${collapsed ? "fa-chevron-down" : "fa-chevron-up"}`} style={{ color: "var(--muted)", fontSize: "11px" }} />
+      </div>
+      {!collapsed && (
+        <div style={{ padding: "0 1.25rem 1.25rem" }}>
+          <ul style={{ listStyle: "none", margin: "0 0 1.25rem", padding: 0 }}>
+            {learning.what_you_learned.map((item, i) => (
+              <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontSize: "14px", color: "#c8d0e0", lineHeight: "1.7", marginBottom: "6px" }}>
+                <i className="fa-solid fa-circle-check" style={{ color: "var(--gold)", fontSize: "12px", marginTop: "4px", flexShrink: 0 }} />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <MasteryBars mastery={learning.mastery_areas} />
+          <KnowledgeCheck questions={learning.knowledge_check} />
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Score Progression Graph ──────────────────────────────────────────────────
 function ScoreGraph({ rounds }) {
@@ -46,7 +211,6 @@ function ScoreGraph({ rounds }) {
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
-        {/* Grid lines */}
         {[25, 50, 75].map(v => {
           const y = H - PAD - ((v / max) * (H - PAD * 2));
           return (
@@ -56,18 +220,12 @@ function ScoreGraph({ rounds }) {
             </g>
           );
         })}
-        {/* Line */}
         <polyline points={polyline} fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeOpacity="0.6" />
-        {/* Points */}
         {points.map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r="5" fill={color(scores[i])} stroke="var(--navy)" strokeWidth="2" />
-            <text x={p.x} y={p.y - 10} fill={color(scores[i])} fontSize="10" textAnchor="middle" fontWeight="600">
-              {scores[i]}
-            </text>
-            <text x={p.x} y={H - 6} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="middle">
-              R{i + 1}
-            </text>
+            <text x={p.x} y={p.y - 10} fill={color(scores[i])} fontSize="10" textAnchor="middle" fontWeight="600">{scores[i]}</text>
+            <text x={p.x} y={H - 6} fill="rgba(255,255,255,0.3)" fontSize="8" textAnchor="middle">R{i + 1}</text>
           </g>
         ))}
       </svg>
@@ -81,10 +239,7 @@ function CaseLawPanel({ references, jurisdictionLaw, jurisdiction }) {
   if (!references?.length && !jurisdictionLaw) return null;
   return (
     <div className="card" style={{ marginBottom: "1.5rem", overflow: "hidden" }}>
-      <div
-        onClick={() => setCollapsed(!collapsed)}
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", cursor: "pointer" }}
-      >
+      <div onClick={() => setCollapsed(!collapsed)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", cursor: "pointer" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <i className="fa-solid fa-book-open" style={{ color: "var(--gold)", fontSize: "13px" }} />
           <span style={{ fontFamily: "var(--font-display)", fontSize: "15px", fontWeight: 600, color: "var(--gold)" }}>
@@ -97,21 +252,16 @@ function CaseLawPanel({ references, jurisdictionLaw, jurisdiction }) {
         <div style={{ padding: "0 1.25rem 1.25rem" }}>
           {jurisdictionLaw && (
             <div style={{ background: "var(--gold-bg)", border: "1px solid var(--border)", borderRadius: "4px", padding: "1rem", marginBottom: "1rem" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--gold)", letterSpacing: "0.1em", marginBottom: "6px" }}>
-                APPLICABLE LAW
-              </div>
-              <div style={{ fontSize: "13px", color: "#c8d0e0", lineHeight: "1.7" }}>{jurisdictionLaw}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--gold)", letterSpacing: "0.1em", marginBottom: "6px" }}>APPLICABLE LAW</div>
+              <div style={{ fontSize: "13px", color: "var(--white)", lineHeight: "1.7" }}>{jurisdictionLaw}</div>
             </div>
           )}
           {references?.map((ref, i) => (
             <div key={i} style={{ padding: "10px 0", borderBottom: i < references.length - 1 ? "1px solid var(--border-dim)" : "none" }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", fontWeight: 600, color: "#c8a96e", marginBottom: "4px" }}>
-                <i className="fa-solid fa-gavel" style={{ marginRight: "8px", fontSize: "10px" }} />
-                {ref.case}
+                <i className="fa-solid fa-gavel" style={{ marginRight: "8px", fontSize: "10px" }} />{ref.case}
               </div>
-              <div style={{ fontSize: "13px", color: "var(--muted)", lineHeight: "1.6", paddingLeft: "18px" }}>
-                {ref.relevance}
-              </div>
+              <div style={{ fontSize: "13px", color: "var(--muted)", lineHeight: "1.6", paddingLeft: "18px" }}>{ref.relevance}</div>
             </div>
           ))}
         </div>
@@ -120,16 +270,14 @@ function CaseLawPanel({ references, jurisdictionLaw, jurisdiction }) {
   );
 }
 
-// ── Court Prep Checklist ─────────────────────────────────────────────────────
+// ── Court Prep Panel ─────────────────────────────────────────────────────────
 function CourtPrepPanel({ courtPrep }) {
   if (!courtPrep?.length) return null;
   return (
     <div className="card" style={{ padding: "1.5rem", marginBottom: "1rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1.25rem" }}>
         <i className="fa-solid fa-list-check" style={{ color: "var(--gold)", fontSize: "13px" }} />
-        <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--gold)" }}>
-          Day-of-Court Preparation
-        </span>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--gold)" }}>Day-of-Court Preparation</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
         {courtPrep.map((section, i) => (
@@ -139,7 +287,7 @@ function CourtPrepPanel({ courtPrep }) {
             </div>
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {section.items?.map((item, j) => (
-                <li key={j} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: "#c8d0e0", lineHeight: "1.6", marginBottom: "4px" }}>
+                <li key={j} style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13px", color: "#1e3a3e", lineHeight: "1.6", marginBottom: "4px" }}>
                   <i className={`fa-solid ${section.category === "What NOT To Do" ? "fa-xmark" : "fa-check"}`}
                     style={{ color: section.category === "What NOT To Do" ? "#c0392b" : "#2e8b57", fontSize: "10px", marginTop: "4px", flexShrink: 0 }} />
                   {item}
@@ -157,7 +305,7 @@ function CourtPrepPanel({ courtPrep }) {
 function ScoreBar({ score, prev }) {
   const color = score < 40 ? "#c0392b" : score < 60 ? "#c8a030" : score < 80 ? "#4a7fa5" : "#2e8b57";
   const label = score < 40 ? "Weak" : score < 60 ? "Developing" : score < 80 ? "Strong" : "Excellent";
-  const diff = prev !== null ? score - prev : null;
+  const diff  = prev !== null ? score - prev : null;
   return (
     <div style={{ marginBottom: "1.25rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
@@ -194,7 +342,7 @@ function PersonaCard({ title, icon, content, accentColor, bgColor, borderColor }
         <i className={`fa-solid ${collapsed ? "fa-chevron-down" : "fa-chevron-up"}`} style={{ color: "var(--muted)", fontSize: "11px" }} />
       </div>
       {!collapsed && (
-        <div style={{ padding: "1.25rem", fontSize: "14px", color: "#c8d0e0", lineHeight: "1.85", whiteSpace: "pre-wrap" }}>
+        <div style={{ padding: "1.25rem", fontSize: "14px", color: "#1e3a3e", lineHeight: "1.85", whiteSpace: "pre-wrap" }}>
           {content}
         </div>
       )}
@@ -262,7 +410,7 @@ function RoundBlock({ round, userResponse, prevScore }) {
             <i className="fa-solid fa-user" style={{ color: "#4a7fa5", fontSize: "12px" }} />
             <span style={{ fontFamily: "var(--font-display)", fontSize: "14px", fontWeight: 600, color: "#4a7fa5" }}>Your Response</span>
           </div>
-          <div style={{ fontSize: "14px", color: "#c8d0e0", lineHeight: "1.75" }}>{userResponse}</div>
+          <div style={{ fontSize: "14px", color: "#1e3a3e", lineHeight: "1.75" }}>{userResponse}</div>
         </div>
       )}
       <ScoreBar score={round.score.score} prev={prevScore} />
@@ -271,13 +419,13 @@ function RoundBlock({ round, userResponse, prevScore }) {
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "#2e8b57", letterSpacing: "0.1em", marginBottom: "6px" }}>
             <i className="fa-solid fa-shield-halved" style={{ marginRight: "6px" }} />STRONGEST POINT
           </div>
-          <div style={{ fontSize: "13px", color: "#c8d0e0", lineHeight: "1.6" }}>{round.score.verdict}</div>
+          <div style={{ fontSize: "13px", color: "#1e3a3e", lineHeight: "1.6" }}>{round.score.verdict}</div>
         </div>
         <div className="card" style={{ borderColor: "rgba(192,57,43,0.3)", background: "rgba(192,57,43,0.07)", padding: "1rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "#e74c3c", letterSpacing: "0.1em", marginBottom: "6px" }}>
             <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }} />CRITICAL GAP
           </div>
-          <div style={{ fontSize: "13px", color: "#c8d0e0", lineHeight: "1.6" }}>{round.score.critical_gap}</div>
+          <div style={{ fontSize: "13px", color: "#1e3a3e", lineHeight: "1.6" }}>{round.score.critical_gap}</div>
         </div>
       </div>
       <PersonaCard title="Your Advocate" icon="fa-solid fa-shield-halved" content={round.advocate} accentColor="#4a7fa5" bgColor="rgba(74,127,165,0.06)" borderColor="rgba(74,127,165,0.25)" />
@@ -289,24 +437,28 @@ function RoundBlock({ round, userResponse, prevScore }) {
 
 // ── Main App ─────────────────────────────────────────────────────────────────
 export default function App({ user, activeCase, onBackToDashboard, onSignOut }) {
-  const [currentCaseId, setCurrentCaseId]     = useState(activeCase?.id || null);
-  const [caseText, setCaseText]               = useState("");
-  const [caseType, setCaseType]               = useState("landlord");
-  const [jurisdiction, setJurisdiction]       = useState("General US");
-  const [userResponse, setUserResponse]       = useState("");
-  const [rounds, setRounds]                   = useState([]);
-  const [userResponses, setUserResponses]     = useState([]);
-  const [checklist, setChecklist]             = useState([]);
-  const [history, setHistory]                 = useState([]);
-  const [loading, setLoading]                 = useState(false);
-  const [started, setStarted]                 = useState(false);
-  const [openingStatement, setOpeningStatement] = useState("");
-  const [loadingOpening, setLoadingOpening]   = useState(false);
-  const [caseReferences, setCaseReferences]   = useState([]);
-  const [jurisdictionLaw, setJurisdictionLaw] = useState("");
-  const [closingArgument, setClosingArgument] = useState("");
-  const [courtPrep, setCourtPrep]             = useState([]);
-  const [loadingClosing, setLoadingClosing]   = useState(false);
+  const [currentCaseId, setCurrentCaseId]         = useState(activeCase?.id || null);
+  const [caseText, setCaseText]                   = useState("");
+  const [caseType, setCaseType]                   = useState("landlord");
+  const [jurisdiction, setJurisdiction]           = useState("General US");
+  const [userResponse, setUserResponse]           = useState("");
+  const [rounds, setRounds]                       = useState([]);
+  const [userResponses, setUserResponses]         = useState([]);
+  const [checklist, setChecklist]                 = useState([]);
+  const [history, setHistory]                     = useState([]);
+  const [loading, setLoading]                     = useState(false);
+  const [started, setStarted]                     = useState(false);
+  const [openingStatement, setOpeningStatement]   = useState("");
+  const [loadingOpening, setLoadingOpening]       = useState(false);
+  const [caseReferences, setCaseReferences]       = useState([]);
+  const [jurisdictionLaw, setJurisdictionLaw]     = useState("");
+  const [closingArgument, setClosingArgument]     = useState("");
+  const [courtPrep, setCourtPrep]                 = useState([]);
+  const [loadingClosing, setLoadingClosing]       = useState(false);
+  const [learningObjectives, setLearningObjectives] = useState([]);
+  const [keyPrinciple, setKeyPrinciple]           = useState("");
+  const [roundLearning, setRoundLearning]         = useState([]);
+  const [loadingLearning, setLoadingLearning]     = useState(false);
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -322,11 +474,13 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
     setCaseType(caseData.case_type);
     setCurrentCaseId(caseData.id);
     setStarted(true);
+
     const [{ data: roundsData }, { data: checklistData }, { data: openingData }] = await Promise.all([
       supabase.from("rounds").select("*").eq("case_id", caseData.id).order("round_number"),
       supabase.from("checklist_items").select("*").eq("case_id", caseData.id).order("created_at"),
       supabase.from("opening_statements").select("*").eq("case_id", caseData.id).order("created_at", { ascending: false }).limit(1),
     ]);
+
     if (roundsData?.length > 0) {
       setRounds(roundsData.map(r => ({ label: r.label, advocate: r.advocate, opposition: r.opposition, judge: r.judge, score: { score: r.score, verdict: r.verdict, critical_gap: r.critical_gap } })));
       setUserResponses(roundsData.filter(r => r.user_response).map(r => r.user_response));
@@ -360,6 +514,25 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
     }
   };
 
+  const fetchLearning = async (roundNum, advocate, opposition, judge, userResp = "") => {
+    try {
+      const res = await axios.post(`${API}/learning`, {
+        case_description: caseText,
+        case_type: caseType,
+        jurisdiction,
+        round_number: roundNum,
+        advocate,
+        opposition,
+        judge,
+        user_response: userResp,
+      });
+      return res.data;
+    } catch (e) {
+      console.error("Learning fetch failed:", e);
+      return null;
+    }
+  };
+
   const analyzeCase = async () => {
     if (!caseText.trim()) return;
     setLoading(true);
@@ -370,17 +543,35 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
         jurisdiction,
         conversation_history: [],
       });
-      const firstRound = { label: "Initial Analysis", advocate: res.data.advocate, opposition: res.data.opposition, judge: res.data.judge, score: res.data.score };
+
+      const firstRound = {
+        label: "Initial Analysis",
+        advocate: res.data.advocate,
+        opposition: res.data.opposition,
+        judge: res.data.judge,
+        score: res.data.score,
+      };
+
       let newChecklist = res.data.checklist || [];
 
       if (user) {
         const title = caseText.slice(0, 60) + (caseText.length > 60 ? "..." : "");
-        const { data: caseData } = await supabase.from("cases").insert({ user_id: user.id, title, case_description: caseText, case_type: caseType }).select().single();
+        const { data: caseData } = await supabase.from("cases").insert({
+          user_id: user.id, title, case_description: caseText, case_type: caseType
+        }).select().single();
+
         if (caseData) {
           setCurrentCaseId(caseData.id);
           const [, ...checklistResults] = await Promise.all([
-            supabase.from("rounds").insert({ case_id: caseData.id, round_number: 1, label: firstRound.label, advocate: firstRound.advocate, opposition: firstRound.opposition, judge: firstRound.judge, score: firstRound.score.score, verdict: firstRound.score.verdict, critical_gap: firstRound.score.critical_gap }),
-            ...newChecklist.map(item => supabase.from("checklist_items").insert({ case_id: caseData.id, item: item.item, priority: item.priority, have: false }).select().single()),
+            supabase.from("rounds").insert({
+              case_id: caseData.id, round_number: 1, label: firstRound.label,
+              advocate: firstRound.advocate, opposition: firstRound.opposition,
+              judge: firstRound.judge, score: firstRound.score.score,
+              verdict: firstRound.score.verdict, critical_gap: firstRound.score.critical_gap,
+            }),
+            ...newChecklist.map(item => supabase.from("checklist_items").insert({
+              case_id: caseData.id, item: item.item, priority: item.priority, have: false
+            }).select().single()),
           ]);
           newChecklist = newChecklist.map((item, idx) => ({ ...item, id: checklistResults[idx]?.data?.id || null, have: false }));
           newChecklist = await autoCheckEvidence(caseText, [], newChecklist);
@@ -398,7 +589,25 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
       setClosingArgument("");
       setCourtPrep([]);
       setOpeningStatement("");
+      setLearningObjectives([]);
+      setKeyPrinciple("");
+      setRoundLearning([]);
       setStarted(true);
+
+      // Fetch learning objectives in background
+      setLoadingLearning(true);
+      const learning = await fetchLearning(1, res.data.advocate, res.data.opposition, res.data.judge);
+      if (learning) {
+        setLearningObjectives(learning.objectives || []);
+        setKeyPrinciple(learning.key_principle || "");
+        setRoundLearning([{
+          what_you_learned: learning.what_you_learned || [],
+          knowledge_check:  learning.knowledge_check  || [],
+          mastery_areas:    learning.mastery_areas    || {},
+        }]);
+      }
+      setLoadingLearning(false);
+
     } catch (e) {
       alert("Backend error — is the server running?");
     }
@@ -416,20 +625,47 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
         user_response: userResponse,
         conversation_history: history,
       });
-      const newRound = { label: `Round ${rounds.length + 1} — After Your Response`, advocate: res.data.advocate, opposition: res.data.opposition, judge: res.data.judge, score: res.data.score };
+
+      const newRound = {
+        label: `Round ${rounds.length + 1} — After Your Response`,
+        advocate: res.data.advocate,
+        opposition: res.data.opposition,
+        judge: res.data.judge,
+        score: res.data.score,
+      };
+
       const newUserResponses = [...userResponses, userResponse];
       const updatedChecklist = await autoCheckEvidence(caseText, newUserResponses, checklist);
+
       setRounds(prev => [...prev, newRound]);
       setUserResponses(newUserResponses);
       setChecklist(updatedChecklist);
       setHistory(res.data.history);
       setUserResponse("");
+
       if (user && currentCaseId) {
         await Promise.all([
-          supabase.from("rounds").insert({ case_id: currentCaseId, round_number: rounds.length + 1, label: newRound.label, advocate: newRound.advocate, opposition: newRound.opposition, judge: newRound.judge, score: newRound.score.score, verdict: newRound.score.verdict, critical_gap: newRound.score.critical_gap, user_response: userResponse }),
+          supabase.from("rounds").insert({
+            case_id: currentCaseId, round_number: rounds.length + 1,
+            label: newRound.label, advocate: newRound.advocate,
+            opposition: newRound.opposition, judge: newRound.judge,
+            score: newRound.score.score, verdict: newRound.score.verdict,
+            critical_gap: newRound.score.critical_gap, user_response: userResponse,
+          }),
           supabase.from("cases").update({ updated_at: new Date().toISOString() }).eq("id", currentCaseId),
         ]);
       }
+
+      // Fetch learning recap for this round in background
+      const learning = await fetchLearning(rounds.length + 1, res.data.advocate, res.data.opposition, res.data.judge, userResponse);
+      if (learning) {
+        setRoundLearning(prev => [...prev, {
+          what_you_learned: learning.what_you_learned || [],
+          knowledge_check:  learning.knowledge_check  || [],
+          mastery_areas:    learning.mastery_areas    || {},
+        }]);
+      }
+
     } catch (e) {
       alert("Backend error — is the server running?");
     }
@@ -447,10 +683,17 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
     setLoadingOpening(true);
     try {
       const securedEvidence = checklist.filter(i => i.have).map(i => i.item);
-      const roundsSummary = rounds.map((r, i) => `Round ${i + 1}: Score ${r.score.score}/100\nStrongest: ${r.score.verdict}\nGap: ${r.score.critical_gap}\nAdvocate: ${r.advocate.slice(0, 300)}...`).join("\n\n");
-      const res = await axios.post(`${API}/opening-statement`, { case_description: caseText, case_type: caseType, jurisdiction, rounds_summary: roundsSummary, evidence_secured: securedEvidence });
+      const roundsSummary = rounds.map((r, i) =>
+        `Round ${i + 1}: Score ${r.score.score}/100\nStrongest: ${r.score.verdict}\nGap: ${r.score.critical_gap}\nAdvocate: ${r.advocate.slice(0, 300)}...`
+      ).join("\n\n");
+      const res = await axios.post(`${API}/opening-statement`, {
+        case_description: caseText, case_type: caseType, jurisdiction,
+        rounds_summary: roundsSummary, evidence_secured: securedEvidence,
+      });
       setOpeningStatement(res.data.opening_statement);
-      if (user && currentCaseId) await supabase.from("opening_statements").upsert({ case_id: currentCaseId, content: res.data.opening_statement });
+      if (user && currentCaseId) {
+        await supabase.from("opening_statements").upsert({ case_id: currentCaseId, content: res.data.opening_statement });
+      }
     } catch (e) {
       alert("Error generating opening statement");
     }
@@ -460,8 +703,12 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
   const generateClosingAndPrep = async () => {
     setLoadingClosing(true);
     try {
-      const roundsSummary = rounds.map((r, i) => `Round ${i + 1}: Score ${r.score.score}/100\nStrongest: ${r.score.verdict}\nGap: ${r.score.critical_gap}\nOpposition: ${r.opposition.slice(0, 300)}...`).join("\n\n");
-      const res = await axios.post(`${API}/closing-argument`, { case_description: caseText, case_type: caseType, jurisdiction, rounds_summary: roundsSummary });
+      const roundsSummary = rounds.map((r, i) =>
+        `Round ${i + 1}: Score ${r.score.score}/100\nStrongest: ${r.score.verdict}\nGap: ${r.score.critical_gap}\nOpposition: ${r.opposition.slice(0, 300)}...`
+      ).join("\n\n");
+      const res = await axios.post(`${API}/closing-argument`, {
+        case_description: caseText, case_type: caseType, jurisdiction, rounds_summary: roundsSummary,
+      });
       setClosingArgument(res.data.closing_argument);
       setCourtPrep(res.data.court_prep || []);
     } catch (e) {
@@ -476,6 +723,8 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
     setStarted(false); setCurrentCaseId(null); setOpeningStatement("");
     setJurisdiction("General US"); setCaseReferences([]);
     setJurisdictionLaw(""); setClosingArgument(""); setCourtPrep([]);
+    setLearningObjectives([]); setKeyPrinciple(""); setRoundLearning([]);
+    setLoadingLearning(false);
   };
 
   const exportPDF = () => {
@@ -496,7 +745,7 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
     doc.setFontSize(32); doc.setTextColor(200, 169, 110); doc.setFont("helvetica", "bold");
     doc.text("TRIALMIND", PAGE_WIDTH / 2, 200, { align: "center" });
     doc.setFontSize(14); doc.setTextColor(220, 225, 240); doc.setFont("helvetica", "normal");
-    doc.text("AI Adversarial Case Preparation Report", PAGE_WIDTH / 2, 228, { align: "center" });
+    doc.text("AI Legal Reasoning Education & Case Preparation", PAGE_WIDTH / 2, 228, { align: "center" });
     doc.setDrawColor(200, 169, 110); doc.setLineWidth(0.5); doc.line(MARGIN + 60, 250, PAGE_WIDTH - MARGIN - 60, 250);
     const caseTypeName = CASE_TYPES.find(c => c.id === caseType)?.label || caseType;
     doc.setFontSize(12); doc.setTextColor(180, 190, 215);
@@ -512,16 +761,27 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
       doc.text("Final Case Readiness Score / 100", PAGE_WIDTH / 2, 444, { align: "center" });
     }
     doc.setFontSize(10); doc.setTextColor(120, 130, 150);
-    doc.text("This report is not legal advice. Consult a licensed attorney for serious matters.", PAGE_WIDTH / 2, PAGE_HEIGHT - 40, { align: "center" });
+    doc.text("This report is for educational purposes. Not a substitute for legal advice.", PAGE_WIDTH / 2, PAGE_HEIGHT - 40, { align: "center" });
 
     // Page 2: Summary
     doc.addPage(); doc.setFillColor(255, 255, 255); doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F"); y = MARGIN;
     addText("CASE SUMMARY", 10, [150, 110, 50], true); y += 4; addRule();
     addText(caseText, 12, [30, 35, 50], false); y += 24;
+
     if (jurisdictionLaw) {
       addText("APPLICABLE LAW", 10, [150, 110, 50], true); y += 4; addRule();
       addText(jurisdictionLaw, 12, [30, 35, 50], false); y += 24;
     }
+
+    if (learningObjectives.length > 0) {
+      addText("LEARNING OBJECTIVES", 10, [150, 110, 50], true); y += 4; addRule();
+      if (keyPrinciple) { addText(keyPrinciple, 12, [80, 80, 80], false); y += 8; }
+      learningObjectives.forEach(obj => {
+        addText(`• ${obj.concept.toUpperCase()}: ${obj.description}`, 11, [30, 35, 50], false);
+        y += 2;
+      }); y += 16;
+    }
+
     if (rounds.length > 1) {
       addText("SCORE PROGRESSION", 10, [150, 110, 50], true); y += 4; addRule();
       rounds.forEach(r => {
@@ -529,6 +789,7 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
         addText(`${r.label}:  ${r.score.score} / 100`, 12, sc, true); y += 2;
       }); y += 24;
     }
+
     if (checklist.length > 0) {
       addText("EVIDENCE CHECKLIST", 10, [150, 110, 50], true); y += 4; addRule();
       checklist.forEach(item => {
@@ -549,10 +810,17 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
       addText(`Critical Gap: ${round.score.critical_gap}`, 11, [160, 40, 30], false); y += 24;
       addText("YOUR ADVOCATE", 10, [40, 90, 140], true); y += 4; addRule([40, 90, 140]); addText(round.advocate, 12, [30, 35, 50], false); y += 20;
       addText("OPPOSING COUNSEL", 10, [160, 40, 30], true); y += 4; addRule([160, 40, 30]); addText(round.opposition, 12, [30, 35, 50], false); y += 20;
-      addText("THE JUDGE", 10, [90, 60, 160], true); y += 4; addRule([90, 60, 160]); addText(round.judge, 12, [30, 35, 50], false);
+      addText("THE JUDGE", 10, [90, 60, 160], true); y += 4; addRule([90, 60, 160]); addText(round.judge, 12, [30, 35, 50], false); y += 20;
+
+      // Add learning recap to PDF
+      if (roundLearning[i]?.what_you_learned?.length > 0) {
+        addText("WHAT YOU LEARNED", 10, [150, 110, 50], true); y += 4; addRule();
+        roundLearning[i].what_you_learned.forEach(lesson => {
+          addText(`• ${lesson}`, 11, [30, 35, 50], false); y += 2;
+        }); y += 16;
+      }
     });
 
-    // Opening statement
     if (openingStatement) {
       doc.addPage(); doc.setFillColor(255, 255, 255); doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F"); y = MARGIN;
       addText("OPENING STATEMENT", 10, [150, 110, 50], true); y += 4; addRule();
@@ -560,18 +828,17 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
       addText(openingStatement, 13, [30, 35, 50], false);
     }
 
-    // Closing argument
     if (closingArgument) {
       doc.addPage(); doc.setFillColor(255, 255, 255); doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F"); y = MARGIN;
       addText("OPPOSING COUNSEL'S CLOSING ARGUMENT", 10, [160, 40, 30], true); y += 4; addRule([160, 40, 30]);
-      addText("Know what you're walking into. Prepare a rebuttal for each point below.", 11, [120, 130, 150], false); y += 16;
+      addText("Know what you're walking into. Prepare a rebuttal for each point.", 11, [120, 130, 150], false); y += 16;
       addText(closingArgument, 12, [30, 35, 50], false);
     }
 
-    // Disclaimer
     doc.addPage(); doc.setFillColor(255, 255, 255); doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, "F"); y = MARGIN;
     addText("LEGAL DISCLAIMER", 10, [150, 110, 50], true); y += 4; addRule();
-    addText("TrialMind is an AI-powered legal preparation tool. It is not a substitute for professional legal advice. The analysis provided does not constitute legal advice and should not be relied upon as such. For serious legal matters, please consult a licensed attorney in your jurisdiction.", 12, [30, 35, 50], false);
+    addText("TrialMind is an AI-powered legal education tool designed to teach legal reasoning through adversarial simulation. It is not a substitute for professional legal advice. The analysis provided does not constitute legal advice and should not be relied upon as such. For serious legal matters, please consult a licensed attorney in your jurisdiction.", 12, [30, 35, 50], false);
+
     doc.save(`TrialMind-Report-${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
@@ -585,7 +852,7 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
         <i className="fa-solid fa-scale-balanced" style={{ color: "var(--gold)", fontSize: "20px" }} />
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "20px", color: "var(--white)" }}>TrialMind</div>
-          <div style={{ fontSize: "12px", color: "var(--muted)" }}>AI Adversarial Case Preparation</div>
+          <div style={{ fontSize: "12px", color: "var(--muted)" }}>AI Legal Reasoning Education & Case Preparation</div>
         </div>
         {checklist.length > 0 && (
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--muted)" }}>
@@ -613,15 +880,18 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
           </div>
           <div className="gold-rule" />
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 700, letterSpacing: "-0.5px", lineHeight: "1.2", marginBottom: "1rem", color: "var(--white)" }}>
-            Know your case before<br />you walk into court.
+            Learn to reason through<br />your case like a lawyer.
           </h1>
-          <p style={{ fontSize: "16px", color: "var(--muted)", maxWidth: "480px", margin: "0 auto 0.75rem", lineHeight: "1.7", fontWeight: 300 }}>
-            TrialMind deploys three AI legal minds simultaneously — your advocate, opposing counsel, and the judge — exposing every weakness before they do.
+          <p style={{ fontSize: "16px", color: "var(--muted)", maxWidth: "520px", margin: "0 auto 0.75rem", lineHeight: "1.7", fontWeight: 300 }}>
+            TrialMind teaches legal reasoning through adversarial simulation — the same method law schools have used for a century. Face your advocate, opposing counsel, and the judge. Learn what they'll say before you walk in.
           </p>
-          <p style={{ fontSize: "13px", color: "var(--muted)" }}>
+          <p style={{ fontSize: "12px", color: "var(--muted)", marginBottom: "0.5rem", fontStyle: "italic" }}>
+            TrialMind teaches legal reasoning. It does not provide legal advice.
+          </p>
+          {/* <p style={{ fontSize: "13px", color: "var(--muted)" }}>
             Used TrialMind before?{" "}
             <span className="text-link" onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}>Jump to your case</span>
-          </p>
+          </p> */}
         </div>
       )}
 
@@ -650,7 +920,9 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
                   <span style={{ fontSize: "13px", color: "var(--muted)" }}>
                     None of these?{" "}
                     <span className="text-link" onClick={() => setCaseType("other")} style={{ fontWeight: caseType === "other" ? 600 : 400 }}>
-                      {caseType === "other" ? <><i className="fa-solid fa-check" style={{ marginRight: "5px" }} />Using: Other / Custom case</> : "Describe any other civil dispute"}
+                      {caseType === "other"
+                        ? <><i className="fa-solid fa-check" style={{ marginRight: "5px" }} />Using: Other / Custom case</>
+                        : "Describe any other civil dispute"}
                     </span>
                   </span>
                 </div>
@@ -661,15 +933,11 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>
                   <i className="fa-solid fa-location-dot" style={{ marginRight: "6px" }} />Your State / Jurisdiction
                 </div>
-                <select
-                  value={jurisdiction}
-                  onChange={e => setJurisdiction(e.target.value)}
-                  style={{ width: "100%", background: "var(--navy-2)", border: "1px solid var(--border-dim)", borderRadius: "3px", padding: "10px 14px", color: "var(--white)", fontSize: "14px", fontFamily: "var(--font-body)", outline: "none", cursor: "pointer" }}
-                >
+                <select value={jurisdiction} onChange={e => setJurisdiction(e.target.value)} style={{ width: "100%", background: "var(--navy-2)", border: "1px solid var(--border-dim)", borderRadius: "3px", padding: "10px 14px", color: "var(--white)", fontSize: "14px", fontFamily: "var(--font-body)", outline: "none", cursor: "pointer" }}>
                   {JURISDICTIONS.map(j => <option key={j} value={j} style={{ background: "var(--navy-2)" }}>{j}</option>)}
                 </select>
                 <p style={{ fontSize: "12px", color: "var(--muted)", marginTop: "6px", fontStyle: "italic" }}>
-                  Selecting your state enables jurisdiction-specific law and case references in your analysis.
+                  Selecting your state enables jurisdiction-specific law, case references, and learning objectives in your analysis.
                 </p>
               </div>
             </>
@@ -697,7 +965,9 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
           {!started && (
             <div style={{ marginTop: "14px" }}>
               <button className="btn-primary" onClick={analyzeCase} disabled={loading || !caseText.trim()}>
-                {loading ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: "8px" }} />Analyzing...</> : <><i className="fa-solid fa-magnifying-glass" style={{ marginRight: "8px" }} />Analyze My Case</>}
+                {loading
+                  ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: "8px" }} />Analyzing...</>
+                  : <><i className="fa-solid fa-magnifying-glass" style={{ marginRight: "8px" }} />Analyze My Case</>}
               </button>
             </div>
           )}
@@ -705,6 +975,15 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
 
         {/* Evidence checklist */}
         {checklist.length > 0 && <EvidenceChecklist checklist={checklist} onToggle={toggleChecklist} />}
+
+        {/* Learning objectives */}
+        {learningObjectives.length > 0 && <LearningObjectives objectives={learningObjectives} keyPrinciple={keyPrinciple} />}
+        {loadingLearning && (
+          <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "13px", padding: "1rem", fontStyle: "italic" }}>
+            <i className="fa-solid fa-graduation-cap fa-beat-fade" style={{ color: "var(--gold)", marginRight: "8px" }} />
+            Generating learning objectives...
+          </div>
+        )}
 
         {/* Case law + jurisdiction */}
         {caseReferences.length > 0 && (
@@ -714,12 +993,15 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
         {/* Score graph — shows after 2+ rounds */}
         {rounds.length >= 2 && <ScoreGraph rounds={rounds} />}
 
-        {/* Rounds */}
+        {/* Rounds + learning recaps */}
         {rounds.map((round, i) => (
-          <RoundBlock key={i} round={round} userResponse={userResponses[i - 1] || null} prevScore={i === 0 ? null : rounds[i - 1].score.score} />
+          <div key={i}>
+            <RoundBlock round={round} userResponse={userResponses[i - 1] || null} prevScore={i === 0 ? null : rounds[i - 1].score.score} />
+            {roundLearning[i] && <RoundLearningRecap learning={roundLearning[i]} />}
+          </div>
         ))}
 
-        {/* Loading */}
+        {/* Loading between rounds */}
         {loading && rounds.length > 0 && (
           <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "14px", padding: "2rem", border: "1px dashed var(--border)", borderRadius: "4px", marginTop: "1rem", fontStyle: "italic" }}>
             <i className="fa-solid fa-scale-balanced fa-beat-fade" style={{ color: "var(--gold)", marginRight: "10px" }} />
@@ -741,12 +1023,11 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
                       Opposing Counsel's Closing + Court Prep
                     </span>
                   </div>
-                  {!closingArgument && (
+                  {!closingArgument ? (
                     <button className="btn-primary" onClick={generateClosingAndPrep} disabled={loadingClosing} style={{ padding: "8px 18px", fontSize: "13px", background: loadingClosing ? "#374151" : "#c0392b" }}>
                       {loadingClosing ? <><i className="fa-solid fa-spinner fa-spin" style={{ marginRight: "8px" }} />Generating...</> : <><i className="fa-solid fa-eye" style={{ marginRight: "8px" }} />Generate</>}
                     </button>
-                  )}
-                  {closingArgument && (
+                  ) : (
                     <button className="btn-secondary" onClick={generateClosingAndPrep} disabled={loadingClosing} style={{ padding: "7px 14px", fontSize: "12px" }}>
                       <i className="fa-solid fa-rotate" style={{ marginRight: "6px" }} />Regenerate
                     </button>
@@ -755,28 +1036,25 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
                 <p style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic", marginBottom: "1rem" }}>
                   See exactly what opposing counsel will argue — then prepare your court day checklist.
                 </p>
-
                 {!closingArgument && !loadingClosing && (
                   <div style={{ border: "1px dashed var(--border)", borderRadius: "4px", padding: "2rem", textAlign: "center", color: "var(--muted)", fontSize: "14px" }}>
                     <i className="fa-solid fa-shield-halved" style={{ fontSize: "24px", marginBottom: "10px", display: "block", color: "var(--gold-dim)" }} />
                     Know what you're walking into before you walk in.
                   </div>
                 )}
-
                 {loadingClosing && (
                   <div style={{ border: "1px dashed var(--border)", borderRadius: "4px", padding: "2rem", textAlign: "center", color: "var(--muted)", fontSize: "14px", fontStyle: "italic" }}>
                     <i className="fa-solid fa-scale-balanced fa-beat-fade" style={{ color: "var(--gold)", marginRight: "10px" }} />
                     Preparing the opposition's closing argument...
                   </div>
                 )}
-
                 {closingArgument && (
                   <>
-                    <div style={{ background: "rgba(192,57,43,0.06)", border: "1px solid rgba(192,57,43,0.25)", borderRadius: "4px", padding: "1.5rem", marginBottom: "1rem" }}>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "#e74c3c", letterSpacing: "0.1em", marginBottom: "10px" }}>
+                    <div style={{ background: "rgba(182,83,80,0.065)", border: "1px solid rgba(182,83,80,0.28)", borderRadius: "8px", padding: "1.5rem", marginBottom: "1rem" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "#b65350", letterSpacing: "0.1em", marginBottom: "10px" }}>
                         <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }} />OPPOSING COUNSEL WILL ARGUE
                       </div>
-                      <div style={{ fontSize: "14px", color: "#c8d0e0", lineHeight: "1.85", whiteSpace: "pre-wrap", fontStyle: "italic" }}>{closingArgument}</div>
+                      <div style={{ fontSize: "14px", color: "#1e3a3e", lineHeight: "1.85", whiteSpace: "pre-wrap", fontStyle: "italic" }}>{closingArgument}</div>
                     </div>
                     <CourtPrepPanel courtPrep={courtPrep} />
                   </>
@@ -817,8 +1095,8 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
                 </div>
               )}
               {openingStatement && (
-                <div style={{ background: "var(--navy-2)", border: "1px solid var(--border)", borderRadius: "4px", padding: "1.5rem" }}>
-                  <div style={{ fontSize: "15px", color: "#e8edf8", lineHeight: "2", fontFamily: "var(--font-body)", whiteSpace: "pre-wrap", fontStyle: "italic" }}>
+                <div style={{ background: "#e1f4ef", border: "1px solid #70cdbd", borderRadius: "8px", padding: "1.5rem" }}>
+                  <div style={{ fontSize: "15px", color: "#17343a", lineHeight: "2", fontFamily: "var(--font-body)", whiteSpace: "pre-wrap", fontStyle: "italic", fontWeight: 500 }}>
                     {openingStatement}
                   </div>
                   <div style={{ marginTop: "1.25rem" }}>
@@ -868,7 +1146,7 @@ export default function App({ user, activeCase, onBackToDashboard, onSignOut }) 
       <div style={{ borderTop: "1px solid var(--border)", padding: "1.5rem 2rem", textAlign: "center", marginTop: "2rem" }}>
         <p style={{ fontSize: "12px", color: "var(--muted)", fontStyle: "italic", maxWidth: "600px", margin: "0 auto" }}>
           <i className="fa-solid fa-circle-info" style={{ marginRight: "6px", color: "var(--gold-dim)" }} />
-          TrialMind is not a substitute for legal advice. For serious matters, consult a licensed attorney in your jurisdiction.
+          TrialMind teaches legal reasoning through simulation. It is not a substitute for legal advice. For serious matters, consult a licensed attorney in your jurisdiction.
         </p>
       </div>
     </div>

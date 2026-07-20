@@ -30,7 +30,7 @@ export default function Auth({ onAuth }) {
     setLoading(false)
   }
 
-  const handleGuest = () => onAuth(null)
+  const handleGuest = () => onAuth()
 
   const inputStyle = {
     width: "100%", background: "var(--navy-2)",
@@ -40,7 +40,7 @@ export default function Auth({ onAuth }) {
   }
 
   return (
-    <div style={{
+    <div className="auth-shell" style={{
       minHeight: "100vh", background: "var(--navy)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       padding: "2rem"
@@ -56,7 +56,7 @@ export default function Auth({ onAuth }) {
       </div>
 
       {/* Card */}
-      <div className="card" style={{ width: "100%", maxWidth: "400px", padding: "2rem" }}>
+      <div className="card auth-card" style={{ width: "100%", maxWidth: "400px", padding: "2rem" }}>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "20px", fontWeight: 600, color: "var(--white)", marginBottom: "1.5rem" }}>
           {mode === "login" ? "Welcome back" : "Create your account"}
         </h2>
@@ -133,8 +133,9 @@ export default function Auth({ onAuth }) {
         </div>
 
         <div style={{ borderTop: "1px solid var(--border-dim)", paddingTop: "1rem", textAlign: "center" }}>
-          <span className="text-link" onClick={handleGuest} style={{ fontSize: "12px", color: "var(--muted)" }}>
-            Continue without an account →
+          <span className="text-link" onClick={handleGuest} style={{ fontSize: "13px", color: "var(--gold)", fontWeight: 600 }}>
+            <i className="fa-solid fa-play" style={{ marginRight: "6px", fontSize: "10px" }} />
+            Try TrialMind without signing up →
           </span>
         </div>
       </div>
