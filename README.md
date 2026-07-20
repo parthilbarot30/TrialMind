@@ -1,97 +1,143 @@
-# ⚖️ TrialMind — AI Adversarial Case Preparation
+# ⚖️ TrialMind — AI Legal Reasoning Education Platform
 
-> **Know your case before you walk into court.**
+> **Learn to reason through your case like a lawyer.**
 
-TrialMind is an AI-powered legal preparation platform that deploys three simultaneous AI legal minds — your advocate, opposing counsel, and the judge — to expose every weakness in your case before the opposition does.
+TrialMind is an interactive legal-literacy simulator that teaches self-represented litigants how to evaluate evidence, anticipate counterarguments, and communicate clearly in civil disputes — through the same adversarial simulation method law schools have used for a century.
 
-Built for the 5+ million pro-se litigants (self-represented individuals) in the US who face court without legal counsel every year.
+**Built entirely with Codex (GPT-5.6) for the OpenAI Build Week Hackathon.**
 
 ---
 
 ## 🏆 OpenAI Build Week Submission
 
-**Track:** Apps for Your Life  
-**Built with:** Codex (GPT-5.6) — every route, component, and prompt architecture was written inside a single Codex session  
-**Live Demo:** [https://trial-mind.vercel.app](https://trial-mind.vercel.app)  
-**Demo Video:** [YouTube Link]
-
----
-
-## 🎯 The Problem
-
-There are over 5 million Americans who represent themselves in court every year — in landlord disputes, employment cases, small claims, and contract breaches. They have no lawyer. They walk in blind. They discover the weaknesses in their case when opposing counsel destroys it in front of a judge.
-
-TrialMind changes that.
-
----
-
-## ✨ Features
-
-### Core Adversarial Engine
-- **Three simultaneous AI personas** — Advocate, Opposing Counsel, and Judge each respond independently with genuinely distinct voices and reasoning styles
-- **Round-by-round analysis** — submit responses to attacks and watch your case readiness score change in real time
-- **Case Readiness Score** — 0–100 score with delta indicator showing exactly how each response strengthened or weakened your position
-
-### Jurisdiction-Aware Analysis
-- **8 US state jurisdictions** — California, New York, Texas, Florida, Illinois, Georgia, Washington, and General US
-- **State-specific law** — applicable statutes cited in every analysis (e.g. California Civil Code 1950.5 for landlord cases)
-- **Relevant case law** — real legal precedents referenced with specific relevance to your case type
-
-### Evidence & Preparation Tools
-- **Auto-checking evidence checklist** — AI detects evidence mentioned in your case description and responses, automatically marking items as secured
-- **Priority-ranked checklist** — HIGH / MED / LOW priority ratings for each evidence item
-- **Score progression graph** — SVG timeline showing case strength across all rounds
-- **Case law references panel** — collapsible panel showing applicable statutes and precedents
-
-### Court-Ready Documents
-- **Opening Statement Generator** — court-ready 3-paragraph opening statement synthesized from your full analysis, written in first person for oral delivery
-- **Opposing Counsel's Closing Argument** — see exactly what the opposition will argue before you walk in
-- **Day-of-Court Preparation Checklist** — what to bring, what to wear, courtroom conduct, what NOT to do
-- **PDF Export** — full session report including all rounds, evidence checklist, opening statement, closing argument preview, and legal disclaimer
-
-### User Accounts & Persistence
-- **Full authentication** — email/password signup with email confirmation
-- **Case dashboard** — all saved cases with case type, date, and round count
-- **Session persistence** — every round, checklist state, and opening statement saved to database
-- **Guest mode** — use without an account, no data saved
-
-### 5 Case Types
-1. 🏠 Landlord Dispute — security deposit, eviction, habitability
-2. 💼 Employment — wrongful termination, unpaid wages, discrimination
-3. ⚖️ Small Claims — debt, property damage, fraud
-4. 📄 Contract Breach — non-payment, failed delivery
-5. ✳️ Other — any civil dispute
+| Field | Detail |
+|-------|--------|
+| **Track** | Education |
+| **Built with** | Codex + GPT-5.6 |
+| **Live Demo** | https://trial-mind.vercel.app |
+| **Demo Video** | [YouTube Link] |
+| **GitHub** | https://github.com/parthilbarot30/trialmind |
 
 ---
 
 ## 🤖 How Codex & GPT-5.6 Were Used
 
-TrialMind was built entirely inside a single Codex session. Here's specifically where Codex and the underlying model drove the implementation:
+> This section is the most important part of this README. Every architectural decision in TrialMind was made inside Codex. Here is the specific breakdown.
 
-### Codex as the Building Tool
-Every file in this repository was written using Codex:
-- The entire FastAPI backend including all routes, prompt architecture, and JSON parsing logic
-- The complete React frontend including all components, state management, and Supabase integration
-- The Supabase SQL schema and RLS policies
-- The jsPDF export pipeline
+### Codex as the Primary Development Environment
 
-### GPT-5.6 as the Runtime Engine
-The deployed application uses the Groq API (OpenAI-compatible) with Llama 3.3 70B as the inference backend, designed to be swapped to GPT-5.6 via a single environment variable change. The model powers:
+Every file in this repository was written using Codex — not scaffolded with a template and then edited, but written from scratch through iterative Codex sessions:
 
-**Three-Persona Architecture**
-Each persona has a carefully engineered system prompt that forces genuinely distinct reasoning styles:
-- Advocate: constructive, evidence-focused, jurisdiction-aware
-- Opposing Counsel: aggressive, targets procedural gaps, cites missing evidence
-- Judge: neutral, probing, focused on burden of proof
+- **`backend/main.py`** — All 7 FastAPI endpoints, the three-persona prompt architecture, JSON parsing logic, jurisdiction data structures, and the learning/education engine were written and refined entirely in Codex
+- **`frontend/src/App.jsx`** — All React components including ScoreGraph, KnowledgeCheck, MasteryBars, LearningObjectives, PersonaCard, EvidenceChecklist, RoundLearningRecap, and CourtPrepPanel — built component by component in Codex
+- **`frontend/src/Auth.jsx`** — Full authentication flow with email/password and guest mode
+- **`frontend/src/Dashboard.jsx`** — Case dashboard with persistence, colored type badges, and empty state
+- **`frontend/src/Root.jsx`** — App routing with auth state management
+- **`supabase/schema.sql`** — Full database schema with Row Level Security policies
+- **`README.md`** — This file, structured with Codex
 
-**Jurisdiction-Aware Prompting**
-State-specific law and case precedents are injected into every prompt as context, forcing the model to reason about specific statutes rather than generic legal principles.
+### How GPT-5.6 Powers the Runtime Experience
 
-**Auto-Check Evidence Detection**
-A dedicated endpoint analyzes case descriptions and user responses to detect which evidence items have been mentioned, returning structured JSON indices for automatic checklist updates.
+The deployed application calls the Groq API (OpenAI-compatible endpoint) with Llama 3.3 70B as the inference backend — architected to swap to GPT-5.6 via a single environment variable change. The model drives every AI feature:
 
-**Structured Output Pipeline**
-Case Readiness Scores, evidence checklists, and court prep checklists all use strict JSON output formatting with fallback parsing to handle edge cases gracefully.
+#### 1. Three-Persona Adversarial Architecture
+The most technically ambitious part of TrialMind is keeping three simultaneous AI personas genuinely distinct across multiple rounds of argument. Each persona has a system prompt with explicit prohibition language:
+
+```
+ADVOCATE: constructive, evidence-focused, jurisdiction-aware
+→ Forbidden from hedging or expressing uncertainty
+
+OPPOSING COUNSEL: aggressive, attacks procedural gaps, cites missing evidence
+→ Forbidden from being constructive or offering encouragement
+
+JUDGE: neutral, probing, focused on burden of proof
+→ Forbidden from making rulings or expressing opinions
+```
+
+This prohibition-based approach — telling each persona what it cannot do rather than just what it should do — is what prevents voice bleed across rounds.
+
+#### 2. Jurisdiction-Aware Prompting
+State-specific law and case precedents are injected into every prompt as structured context. The model is forced to reason about specific statutes rather than generic legal principles:
+
+```python
+f"""
+JURISDICTION: {jurisdiction}
+APPLICABLE LAW: {law_text}
+RELEVANT PRECEDENTS:
+{case_text}
+"""
+```
+
+This context injection happens on every `/analyze`, `/respond`, `/opening-statement`, and `/closing-argument` call — ensuring every output is grounded in real state law.
+
+#### 3. Education Engine — Structured Output Pipeline
+A dedicated `/learning` endpoint generates four education outputs simultaneously after every round:
+
+```json
+{
+  "objectives": [...],        // 4 learning objectives before analysis
+  "key_principle": "...",     // Most important legal principle
+  "what_you_learned": [...],  // 3 concrete lessons per round
+  "knowledge_check": [...],   // 2 interactive MCQ questions with explanations
+  "mastery_areas": {          // 4-dimensional mastery scores 0-100
+    "burden_of_proof": 72,
+    "evidence_reasoning": 65,
+    "argument_structure": 58,
+    "legal_concept_mastery": 70
+  }
+}
+```
+
+Strict JSON output formatting with fallback parsing ensures reliable UI updates even when the model wraps output in markdown fences.
+
+#### 4. Auto-Check Evidence Detection
+A dedicated `/auto-check` endpoint runs after every analyze and respond call. It detects which evidence items the user has mentioned in their case description and responses, returning a JSON array of checklist indices for automatic checking:
+
+```python
+# Temperature 0.2 for maximum consistency
+# "Be generous — if they mention something that clearly
+#  corresponds to an item, include it."
+```
+
+This runs silently in the background — users see their checklist update automatically as they describe their evidence.
+
+#### 5. Agentic Document Generation
+Three separate generation endpoints produce court-ready documents synthesized from the full conversation history:
+- `/opening-statement` — 3-paragraph statement written in first person for oral delivery
+- `/closing-argument` — Opposition's closing + day-of-court preparation checklist
+- Both are jurisdiction-aware and grounded in the specific evidence the user has confirmed
+
+---
+
+## ✨ Features
+
+### Education Layer
+- **Learning Objectives** — 4 specific legal concepts shown before analysis begins
+- **What You Learned** — 3 concrete lessons generated after every round
+- **Knowledge Check** — Interactive MCQ with immediate feedback and explanations
+- **Mastery Dashboard** — Progress tracked across Burden of Proof, Evidence Reasoning, Argument Structure, Legal Concept Mastery
+- **Score Progression Graph** — Visual SVG timeline of case strength improvement
+
+### Adversarial Engine
+- **Three simultaneous AI personas** — Advocate, Opposing Counsel, Judge
+- **Round-by-round simulation** — Submit responses, watch reasoning improve
+- **Case Readiness Score** — 0-100 with delta indicator per round
+- **Jurisdiction-aware analysis** — 8 US states with real statutes and case law
+
+### Evidence & Preparation
+- **Auto-checking evidence checklist** — Detects evidence from text automatically
+- **Priority ranking** — HIGH / MED / LOW for each evidence item
+- **Opening Statement Generator** — Court-ready, first-person, for oral delivery
+- **Closing Argument Preview** — See exactly what opposition will argue
+- **Day-of-Court Checklist** — What to bring, conduct, what NOT to do
+- **PDF Export** — Complete court report with all rounds and learning recaps
+
+### Product
+- **Full authentication** — Email/password with email confirmation
+- **Guest mode** — No account required, test immediately
+- **Case dashboard** — All saved cases with type badges and round count
+- **Session persistence** — Full history saved to Supabase in real time
+- **Mobile responsive** — Works on all screen sizes
 
 ---
 
@@ -99,15 +145,16 @@ Case Readiness Scores, evidence checklists, and court prep checklists all use st
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React + Vite + Tailwind-compatible CSS |
-| UI | Font Awesome 6.5, Playfair Display + Inter (Google Fonts) |
+| Code written with | Codex (GPT-5.6) |
+| AI Inference | Groq API — Llama 3.3 70B (OpenAI-compatible) |
 | Backend | Python + FastAPI |
-| AI Inference | Groq API (Llama 3.3 70B, OpenAI-compatible) |
+| Frontend | React + Vite |
+| UI | Font Awesome 6.5, Playfair Display, Manrope, DM Mono |
 | Database | Supabase (PostgreSQL + Row Level Security) |
-| Auth | Supabase Auth (email/password) |
+| Auth | Supabase Auth |
 | PDF Generation | jsPDF (client-side) |
-| Frontend Deployment | Vercel |
-| Backend Deployment | Render |
+| Frontend Deploy | Vercel |
+| Backend Deploy | Render |
 
 ---
 
@@ -116,23 +163,22 @@ Case Readiness Scores, evidence checklists, and court prep checklists all use st
 ### Prerequisites
 - Node.js 18+
 - Python 3.11+
-- A Groq API key (free at https://console.groq.com)
-- A Supabase project (free at https://supabase.com)
+- Groq API key (free at https://console.groq.com)
+- Supabase project (free at https://supabase.com)
 
-### 1. Clone the repository
+### 1. Clone
 ```bash
 git clone https://github.com/parthilbarot30/trialmind.git
 cd trialmind
 ```
 
-### 2. Backend setup
+### 2. Backend
 ```bash
 cd backend
 python -m venv venv
 
 # Windows
 venv\Scripts\activate
-
 # Mac/Linux
 source venv/bin/activate
 
@@ -144,17 +190,17 @@ Create `backend/.env`:
 GROQ_API_KEY=your_groq_api_key_here
 ```
 
-Start the backend:
+Run:
 ```bash
 python -m uvicorn main:app --reload
 ```
 
-Backend runs at `http://localhost:8000`
+Backend at `http://localhost:8000`
 
-### 3. Database setup
-Go to your Supabase project → SQL Editor → run the entire contents of `supabase/schema.sql`
+### 3. Database
+Go to Supabase → SQL Editor → run the entire contents of `supabase/schema.sql`
 
-### 4. Frontend setup
+### 4. Frontend
 ```bash
 cd frontend
 npm install
@@ -167,12 +213,15 @@ VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-Start the frontend:
+Run:
 ```bash
 npm run dev
 ```
 
-Frontend runs at `http://localhost:5173`
+Frontend at `http://localhost:5173`
+
+### 5. Test immediately (no setup required)
+Visit https://trial-mind.vercel.app → click **"Try TrialMind without signing up"**
 
 ---
 
@@ -181,39 +230,22 @@ Frontend runs at `http://localhost:5173`
 ```
 trialmind/
 ├── backend/
-│   ├── main.py              # FastAPI app — all routes and AI logic
-│   ├── requirements.txt     # Python dependencies
-│   ├── render.yaml          # Render deployment config
-│   └── runtime.txt          # Python version pin
+│   ├── main.py              # All 7 API endpoints + AI logic
+│   ├── requirements.txt
+│   ├── render.yaml
+│   └── runtime.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx          # Main application — all UI components
-│   │   ├── Auth.jsx         # Authentication screen
+│   │   ├── App.jsx          # All UI components + state
+│   │   ├── Auth.jsx         # Authentication
 │   │   ├── Dashboard.jsx    # Case dashboard
-│   │   ├── Root.jsx         # App router — auth/dashboard/app
+│   │   ├── Root.jsx         # App router
 │   │   ├── supabase.js      # Supabase client
-│   │   ├── index.css        # Global styles and CSS variables
-│   │   └── main.jsx         # React entry point
-│   ├── index.html           # HTML template with font/FA imports
-│   └── package.json
+│   │   ├── index.css        # Global styles
+│   │   └── main.jsx         # Entry point
+│   └── index.html
 └── supabase/
-    └── schema.sql           # Complete database schema with RLS
-```
-
----
-
-## 🗄️ Database Schema
-
-```sql
--- Core tables
-cases              -- user's saved cases
-rounds             -- each analysis round per case
-checklist_items    -- evidence checklist items per case
-opening_statements -- generated opening statements per case
-profiles           -- user profile data
-
--- All tables protected by Row Level Security
--- Users can only access their own data
+    └── schema.sql           # Full schema with RLS
 ```
 
 ---
@@ -222,54 +254,56 @@ profiles           -- user profile data
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/analyze` | Initial case analysis — all three personas respond |
-| POST | `/respond` | Submit user response — all three personas react |
+| POST | `/analyze` | Initial analysis — all three personas respond |
+| POST | `/respond` | Submit response — personas react to new information |
 | POST | `/opening-statement` | Generate court-ready opening statement |
-| POST | `/closing-argument` | Generate opposing counsel closing + court prep |
-| POST | `/auto-check` | Detect evidence mentioned in text, return checked indices |
+| POST | `/closing-argument` | Generate opposition closing + court prep checklist |
+| POST | `/auto-check` | Detect evidence mentioned in text |
+| POST | `/learning` | Generate learning objectives, recap, knowledge check, mastery |
+| GET | `/` | Health check |
 
 ---
 
-## 🎬 Demo Script
+## 🎬 Demo Scenario
 
-The demo uses this landlord dispute scenario:
+**Case type:** Small Claims — California
 
-> *"My landlord kept my entire $800 security deposit after I moved out. I left the apartment clean and gave 30 days written notice via WhatsApp. I have photos from move-in but not move-out. The landlord claims there was damage but never provided an itemized list."*
+**Input:**
+> "I am a freelance graphic designer. I was hired to design a complete brand identity package for $2,400. I delivered everything on time and the client approved all designs via email. They have refused to pay the remaining $1,200 balance, claiming the designs were 'not what they asked for' despite written approval. They are now using my designs on their signage and social media without paying me."
 
 **What to observe:**
-1. Initial score (~51/100) and why — missing move-out documentation
-2. Opposition's attack — WhatsApp notice validity, no move-out photos
-3. Judge's questions — burden of proof, documentation gaps
-4. Evidence checklist auto-checking items from the description
-5. Submit response with new evidence — score jumps to ~70+
-6. Score progression graph appears after round 2
-7. Generate opening statement — court-ready 3 paragraphs
-8. Generate closing argument — see exactly what opposition will argue
-9. Court prep checklist — day-of preparation
-10. Download PDF — full court report
+1. Learning objectives appear — burden of proof, evidence relevance, argument structure, California contract law
+2. Three personas respond with distinct voices
+3. Evidence checklist auto-checks items mentioned in the description
+4. Case Readiness Score with critical gap identified
+5. Submit response with Instagram screenshot evidence — score jumps
+6. "What You Learned" recap + knowledge check appears
+7. Mastery scores update across 4 dimensions
+8. Generate opening statement and closing argument
+9. Download full PDF court report
 
 ---
 
 ## 🔒 Security
 
-- All API keys stored as environment variables — never in code
-- Supabase Row Level Security — users can only access their own cases
-- No sensitive data stored in frontend bundle
-- Guest mode available — no account required to use core features
+- All API keys in environment variables — never in code
+- Supabase RLS — users only access their own data
+- Guest mode — no account required, no data stored
+- No sensitive data in frontend bundle
 
 ---
 
 ## ⚠️ Legal Disclaimer
 
-TrialMind is an AI-powered legal preparation tool designed to help individuals understand their legal position and prepare for court proceedings. It is **not a substitute for professional legal advice**. The analysis provided by TrialMind does not constitute legal advice and should not be relied upon as such. For serious legal matters, please consult a licensed attorney in your jurisdiction.
+TrialMind is an AI-powered legal education tool. It is **not a substitute for professional legal advice**. The analysis does not constitute legal advice and should not be relied upon as such. For serious legal matters, consult a licensed attorney in your jurisdiction.
 
 ---
 
 ## 👨‍💻 Built By
 
-**Parthil Barot**  
-B.Tech Computer Science & Engineering  
-Institute of Technology, Nirma University, Ahmedabad  
+**Parthil Barot**
+B.Tech Computer Science & Engineering
+Institute of Technology, Nirma University, Ahmedabad, India
 
 Built entirely with Codex during OpenAI Build Week 2026.
 
