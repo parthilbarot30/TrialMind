@@ -228,7 +228,28 @@ class AutoCheckInput(BaseModel):
     user_responses: list = []
     checklist_items: list = []
 
+class LearningInput(BaseModel):
+    case_description: str
+    case_type: str = "small_claims"
+    jurisdiction: str = "General US"
+    round_number: int = 1
+    advocate: str = ""
+    opposition: str = ""
+    judge: str = ""
+    user_response: str = ""
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
+
+def parse_json(text: str) -> dict:
+    try:
+        text = text.strip()
+        if "```" in text:
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        return json.loads(text.strip())
+    except:
+        return {}
 
 def get_readiness_score(case_description: str, history: list, case_type: str) -> dict:
     context = f"Case: {case_description}\n\nConversation:\n"
@@ -243,15 +264,8 @@ def get_readiness_score(case_description: str, history: list, case_type: str) ->
         temperature=0.3,
         max_tokens=200
     )
-    try:
-        text = response.choices[0].message.content.strip()
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        return json.loads(text.strip())
-    except:
-        return {"score": 50, "verdict": "Case under evaluation", "critical_gap": "More information needed"}
+    result = parse_json(response.choices[0].message.content)
+    return result if result else {"score": 50, "verdict": "Case under evaluation", "critical_gap": "More information needed"}
 
 def get_evidence_checklist(case_description: str, case_type: str) -> list:
     response = client.chat.completions.create(
@@ -263,16 +277,8 @@ def get_evidence_checklist(case_description: str, case_type: str) -> list:
         temperature=0.4,
         max_tokens=600
     )
-    try:
-        text = response.choices[0].message.content.strip()
-        if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        data = json.loads(text.strip())
-        return data.get("checklist", [])
-    except:
-        return []
+    result = parse_json(response.choices[0].message.content)
+    return result.get("checklist", [])
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
@@ -509,20 +515,13 @@ Make items specific to {data.case_type} cases. Output ONLY the JSON."""
         temperature=0.4, max_tokens=600
     )
 
-    try:
-        prep_text = prep_response.choices[0].message.content.strip()
-        if "```" in prep_text:
-            prep_text = prep_text.split("```")[1]
-            if prep_text.startswith("json"):
-                prep_text = prep_text[4:]
-        court_prep = json.loads(prep_text.strip())
-    except:
-        court_prep = {"checklist": []}
+    court_prep_data = parse_json(prep_response.choices[0].message.content)
 
     return {
         "closing_argument": closing_response.choices[0].message.content,
-        "court_prep": court_prep.get("checklist", [])
+        "court_prep": court_prep_data.get("checklist", [])
     }
+
 
 @app.post("/auto-check")
 def auto_check_evidence(data: AutoCheckInput):
@@ -534,7 +533,7 @@ def auto_check_evidence(data: AutoCheckInput):
 
     items_text = "\n".join(f"{i}: {item}" for i, item in enumerate(data.checklist_items))
 
-    prompt = f"""You are a legal evidence analyst. Based on the text below, determine which 
+    prompt = f"""You are a legal evidence analyst. Based on the text below, determine which
 evidence items the person already has or has explicitly mentioned having.
 
 TEXT:
@@ -568,3 +567,101 @@ Output ONLY the JSON array. Nothing else."""
         return {"checked_indices": checked_indices}
     except:
         return {"checked_indices": []}
+
+
+@app.post("/learning")
+def generate_learning(data: LearningInput):
+    jurisdiction_context = get_jurisdiction_context(data.case_type, data.jurisdiction)
+
+    objectives_prompt = f"""You are a legal education instructor teaching a pro-se litigant
+about {data.case_type} law in {data.jurisdiction}.
+
+Based on this case:
+{data.case_description}
+
+{jurisdiction_context}
+
+Generate learning objectives for this case. Output ONLY this JSON:
+{{
+  "objectives": [
+    {{
+      "concept": "<legal concept name>",
+      "description": "<one sentence — what they will learn>",
+      "icon": "<one of: burden_of_proof, evidence, argument, jurisdiction, procedure>"
+    }}
+  ],
+  "key_principle": "<one sentence — the single most important legal principle in this case>"
+}}
+
+Generate exactly 4 objectives covering: burden of proof, evidence relevance,
+argument structure, and jurisdiction-specific rules.
+Output ONLY the JSON. Nothing else."""
+
+    recap_prompt = f"""You are a legal education instructor reviewing Round {data.round_number}
+of a {data.case_type} case simulation.
+
+Case: {data.case_description}
+Advocate said: {data.advocate[:400]}
+Opposition said: {data.opposition[:400]}
+Judge asked: {data.judge[:300]}
+{"User responded: " + data.user_response[:300] if data.user_response else ""}
+
+Generate a learning recap for this round. Output ONLY this JSON:
+{{
+  "what_you_learned": [
+    "<one concrete legal lesson learned from this round>",
+    "<another specific lesson>",
+    "<third actionable lesson>"
+  ],
+  "knowledge_check": [
+    {{
+      "question": "<short question testing understanding of this round>",
+      "options": ["<option A>", "<option B>", "<option C>", "<option D>"],
+      "correct": 0,
+      "explanation": "<one sentence explaining why this is correct>"
+    }},
+    {{
+      "question": "<second question on a different concept>",
+      "options": ["<option A>", "<option B>", "<option C>", "<option D>"],
+      "correct": 1,
+      "explanation": "<one sentence explaining why>"
+    }}
+  ],
+  "mastery_areas": {{
+    "burden_of_proof": <integer 0-100>,
+    "evidence_reasoning": <integer 0-100>,
+    "argument_structure": <integer 0-100>,
+    "legal_concept_mastery": <integer 0-100>
+  }}
+}}
+
+Output ONLY the JSON. Be specific to what happened in this round."""
+
+    objectives_response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are a precise legal education instructor."},
+            {"role": "user", "content": objectives_prompt}
+        ],
+        temperature=0.4, max_tokens=500
+    )
+
+    recap_response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are a precise legal education instructor."},
+            {"role": "user", "content": recap_prompt}
+        ],
+        temperature=0.4, max_tokens=800
+    )
+
+    objectives_data = parse_json(objectives_response.choices[0].message.content)
+    recap_data = parse_json(recap_response.choices[0].message.content)
+
+    return {
+        "objectives": objectives_data.get("objectives", []),
+        "key_principle": objectives_data.get("key_principle", ""),
+        "what_you_learned": recap_data.get("what_you_learned", []),
+        "knowledge_check": recap_data.get("knowledge_check", []),
+        "mastery_areas": recap_data.get("mastery_areas", {})
+    }
